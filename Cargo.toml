@@ -1,0 +1,19 @@
+[package]
+name = "kedr-core"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+description = "GUI-independent editor foundations with correctness tests and benchmarks"
+repository = "https://github.com/drainedgodw/kedr"
+
+[lib]
+path = "src/lib.rs"
+
+[[bench]]
+name = "core"
+harness = false
+
+[profile.bench]
+lto = "thin"
+codegen-units = 1

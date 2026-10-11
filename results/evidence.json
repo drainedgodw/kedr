@@ -1,0 +1,343 @@
+{
+  "source": "3 release process runs; no excluded samples",
+  "raw_rows": 2880,
+  "cases": 24,
+  "grain": "one timed batch; reported latency is a median of batch-normalized means",
+  "validation": "all case medians independently reproduced using csv + statistics.median",
+  "results": [
+    {
+      "workload": "cursor_lookup_near_end",
+      "engine": "piece_table",
+      "text_bytes": 1048575,
+      "samples": 120,
+      "median_us": 2055.431625,
+      "sample_p95_us": 2331.8789874999993,
+      "min_us": 2005.932,
+      "max_us": 2815.1255
+    },
+    {
+      "workload": "fragmented_insert",
+      "engine": "piece_table",
+      "text_bytes": 1048576,
+      "samples": 120,
+      "median_us": 19.01764404296875,
+      "sample_p95_us": 20.705780419921872,
+      "min_us": 18.53540234375,
+      "max_us": 25.172353515625
+    },
+    {
+      "workload": "fragmented_insert",
+      "engine": "std_string",
+      "text_bytes": 1048576,
+      "samples": 120,
+      "median_us": 10.04355126953125,
+      "sample_p95_us": 10.949470458984374,
+      "min_us": 9.617376953125,
+      "max_us": 15.42805859375
+    },
+    {
+      "workload": "local_insert_delete",
+      "engine": "piece_table",
+      "text_bytes": 1024,
+      "samples": 120,
+      "median_us": 0.22075390625000002,
+      "sample_p95_us": 0.3313734374999999,
+      "min_us": 0.2128984375,
+      "max_us": 1.2686015625
+    },
+    {
+      "workload": "local_insert_delete",
+      "engine": "piece_table",
+      "text_bytes": 65536,
+      "samples": 120,
+      "median_us": 0.2224609375,
+      "sample_p95_us": 0.2789183593749999,
+      "min_us": 0.212828125,
+      "max_us": 0.3674921875
+    },
+    {
+      "workload": "local_insert_delete",
+      "engine": "piece_table",
+      "text_bytes": 1048576,
+      "samples": 120,
+      "median_us": 0.2249375,
+      "sample_p95_us": 0.23828281249999983,
+      "min_us": 0.214921875,
+      "max_us": 0.3891640625
+    },
+    {
+      "workload": "local_insert_delete",
+      "engine": "piece_table",
+      "text_bytes": 8388608,
+      "samples": 120,
+      "median_us": 0.22187109375,
+      "sample_p95_us": 0.23496445312499994,
+      "min_us": 0.2135703125,
+      "max_us": 0.3585625
+    },
+    {
+      "workload": "local_insert_delete",
+      "engine": "std_string",
+      "text_bytes": 1024,
+      "samples": 120,
+      "median_us": 0.02365625,
+      "sample_p95_us": 0.02510234375,
+      "min_us": 0.02259375,
+      "max_us": 0.025265625
+    },
+    {
+      "workload": "local_insert_delete",
+      "engine": "std_string",
+      "text_bytes": 65536,
+      "samples": 120,
+      "median_us": 0.6779726562499999,
+      "sample_p95_us": 0.8431347656249998,
+      "min_us": 0.6514453125,
+      "max_us": 1.1623671875
+    },
+    {
+      "workload": "local_insert_delete",
+      "engine": "std_string",
+      "text_bytes": 1048576,
+      "samples": 120,
+      "median_us": 18.1599296875,
+      "sample_p95_us": 18.699566015625,
+      "min_us": 17.3756171875,
+      "max_us": 58.8140625
+    },
+    {
+      "workload": "local_insert_delete",
+      "engine": "std_string",
+      "text_bytes": 8388608,
+      "samples": 120,
+      "median_us": 294.737265625,
+      "sample_p95_us": 351.409932421875,
+      "min_us": 286.311,
+      "max_us": 370.00684375
+    },
+    {
+      "workload": "materialize",
+      "engine": "piece_table",
+      "text_bytes": 1048576,
+      "samples": 120,
+      "median_us": 58.615203125,
+      "sample_p95_us": 62.9077875,
+      "min_us": 55.56553125,
+      "max_us": 69.99846875
+    },
+    {
+      "workload": "open_warm_file",
+      "engine": "document",
+      "text_bytes": 1048576,
+      "samples": 120,
+      "median_us": 894.16975,
+      "sample_p95_us": 936.2332624999999,
+      "min_us": 852.50275,
+      "max_us": 2532.2095
+    },
+    {
+      "workload": "save_staged_synced",
+      "engine": "document",
+      "text_bytes": 1048576,
+      "samples": 120,
+      "median_us": 1583.741,
+      "sample_p95_us": 2379.4145999999996,
+      "min_us": 1213.087,
+      "max_us": 2665.28
+    },
+    {
+      "workload": "scan_1000_files",
+      "engine": "project",
+      "text_bytes": 0,
+      "samples": 120,
+      "median_us": 624.0565,
+      "sample_p95_us": 688.5933,
+      "min_us": 584.66,
+      "max_us": 6110.235
+    },
+    {
+      "workload": "scattered_insert_delete",
+      "engine": "piece_table",
+      "text_bytes": 1024,
+      "samples": 120,
+      "median_us": 0.2278203125,
+      "sample_p95_us": 0.3367203125,
+      "min_us": 0.218421875,
+      "max_us": 0.4133828125
+    },
+    {
+      "workload": "scattered_insert_delete",
+      "engine": "piece_table",
+      "text_bytes": 65536,
+      "samples": 120,
+      "median_us": 0.22414062499999998,
+      "sample_p95_us": 0.34434882812499995,
+      "min_us": 0.2167421875,
+      "max_us": 0.8589140625
+    },
+    {
+      "workload": "scattered_insert_delete",
+      "engine": "piece_table",
+      "text_bytes": 1048576,
+      "samples": 120,
+      "median_us": 0.22464453125,
+      "sample_p95_us": 0.327980078125,
+      "min_us": 0.2173359375,
+      "max_us": 0.4629453125
+    },
+    {
+      "workload": "scattered_insert_delete",
+      "engine": "piece_table",
+      "text_bytes": 8388608,
+      "samples": 120,
+      "median_us": 0.22898437500000002,
+      "sample_p95_us": 0.39181640624999997,
+      "min_us": 0.220609375,
+      "max_us": 1.2358125
+    },
+    {
+      "workload": "scattered_insert_delete",
+      "engine": "std_string",
+      "text_bytes": 1024,
+      "samples": 120,
+      "median_us": 0.02303515625,
+      "sample_p95_us": 0.031578515625,
+      "min_us": 0.02275,
+      "max_us": 0.03725
+    },
+    {
+      "workload": "scattered_insert_delete",
+      "engine": "std_string",
+      "text_bytes": 65536,
+      "samples": 120,
+      "median_us": 0.781203125,
+      "sample_p95_us": 0.967552734375,
+      "min_us": 0.7552109375,
+      "max_us": 1.3836640625
+    },
+    {
+      "workload": "scattered_insert_delete",
+      "engine": "std_string",
+      "text_bytes": 1048576,
+      "samples": 120,
+      "median_us": 18.95936328125,
+      "sample_p95_us": 20.14748671875,
+      "min_us": 17.7454375,
+      "max_us": 63.45815625
+    },
+    {
+      "workload": "scattered_insert_delete",
+      "engine": "std_string",
+      "text_bytes": 8388608,
+      "samples": 120,
+      "median_us": 319.620265625,
+      "sample_p95_us": 372.70206914062504,
+      "min_us": 303.6386015625,
+      "max_us": 394.8113203125
+    },
+    {
+      "workload": "undo_redo",
+      "engine": "piece_table",
+      "text_bytes": 1048576,
+      "samples": 120,
+      "median_us": 0.15241015625,
+      "sample_p95_us": 0.1952082031249999,
+      "min_us": 0.1458046875,
+      "max_us": 0.294546875
+    }
+  ],
+  "comparisons": [
+    {
+      "workload": "local_insert_delete",
+      "text_bytes": 1024,
+      "core_median_us": 0.22075390625000002,
+      "string_median_us": 0.02365625,
+      "string_over_core_ratio": 0.10716118415231893
+    },
+    {
+      "workload": "local_insert_delete",
+      "text_bytes": 65536,
+      "core_median_us": 0.2224609375,
+      "string_median_us": 0.6779726562499999,
+      "string_over_core_ratio": 3.0476031606672516
+    },
+    {
+      "workload": "local_insert_delete",
+      "text_bytes": 1048576,
+      "core_median_us": 0.2249375,
+      "string_median_us": 18.1599296875,
+      "string_over_core_ratio": 80.73322450680745
+    },
+    {
+      "workload": "local_insert_delete",
+      "text_bytes": 8388608,
+      "core_median_us": 0.22187109375,
+      "string_median_us": 294.737265625,
+      "string_over_core_ratio": 1328.4166974770683
+    },
+    {
+      "workload": "scattered_insert_delete",
+      "text_bytes": 1024,
+      "core_median_us": 0.2278203125,
+      "string_median_us": 0.02303515625,
+      "string_over_core_ratio": 0.10111107300847022
+    },
+    {
+      "workload": "scattered_insert_delete",
+      "text_bytes": 65536,
+      "core_median_us": 0.22414062499999998,
+      "string_median_us": 0.781203125,
+      "string_over_core_ratio": 3.4853258975252706
+    },
+    {
+      "workload": "scattered_insert_delete",
+      "text_bytes": 1048576,
+      "core_median_us": 0.22464453125,
+      "string_median_us": 18.95936328125,
+      "string_over_core_ratio": 84.39717261646003
+    },
+    {
+      "workload": "scattered_insert_delete",
+      "text_bytes": 8388608,
+      "core_median_us": 0.22898437500000002,
+      "string_median_us": 319.620265625,
+      "string_over_core_ratio": 1395.8169225520298
+    },
+    {
+      "workload": "fragmented_insert",
+      "text_bytes": 1048576,
+      "core_median_us": 19.01764404296875,
+      "string_median_us": 10.04355126953125,
+      "string_over_core_ratio": 0.5281175337407041
+    }
+  ],
+  "comparison_plan": [
+    {
+      "grain": "1 MiB initial buffer; matched ASCII changes; history off",
+      "population": "120 batch samples per scenario and engine",
+      "unit": "milliseconds per primitive text change",
+      "finding": "Local insert/delete favors Kedr; sustained fragmented inserts favor String",
+      "derivation": "local pair time divided by 2; fragmented time per single insert; median of normalized batch means",
+      "disposition": "chart",
+      "reason": "Preserves the opposing fragmentation result instead of advertising only a favorable case"
+    },
+    {
+      "grain": "all four buffer sizes, both editing patterns",
+      "population": "matched cases",
+      "unit": "microseconds per pair",
+      "finding": "String wins the 1 KiB cases; Kedr wins larger restored-pair cases",
+      "derivation": "median(elapsed_ns / batch_operations) / 1000",
+      "disposition": "table",
+      "reason": "Full size breakdown remains in the benchmark report"
+    },
+    {
+      "grain": "cursor/document/project scenarios",
+      "population": "120 batch samples each",
+      "unit": "microseconds per named workload",
+      "finding": "Near-end cursor mapping is a measured optimization target",
+      "derivation": "median of normalized batch means",
+      "disposition": "table",
+      "reason": "Different workloads have no common baseline; avoid implying an IDE-level latency comparison"
+    }
+  ]
+}

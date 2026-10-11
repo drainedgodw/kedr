@@ -1,0 +1,45 @@
+name: core
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --check
+      - run: cargo test --locked
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo bench --locked --bench core --no-run
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - run: cargo test --locked
+      - run: cargo bench --locked --bench core --no-run
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record benchmark environment
+        run: |
+          rustc --version --verbose > environment.txt
+          uname -a >> environment.txt
+          lscpu >> environment.txt
+      - name: Run release benchmarks
+        run: cargo bench --locked --bench core > measurements.csv
+      - uses: actions/upload-artifact@v4
+        with:
+          name: core-benchmark-linux
+          path: |
+            measurements.csv
+            environment.txt

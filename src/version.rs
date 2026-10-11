@@ -9,5 +9,19 @@ pub struct Version {
     pub revision: u64,
 }
 pub(crate) fn new_document() -> u64 {
-    NEXT_DOCUMENT.fetch_add(1, Ordering::Relaxed)
+    let mut current = NEXT_DOCUMENT.load(Ordering::Relaxed);
+    loop {
+        let next = current
+            .checked_add(1)
+            .expect("document identity space exhausted");
+        match NEXT_DOCUMENT.compare_exchange_weak(
+            current,
+            next,
+            Ordering::Relaxed,
+            Ordering::Relaxed,
+        ) {
+            Ok(_) => return current,
+            Err(actual) => current = actual,
+        }
+    }
 }

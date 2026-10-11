@@ -1,0 +1,28 @@
+{
+  "utc": "2026-10-11T13:58:29.502851+00:00",
+  "platform": "Linux-6.18.49-x86_64-with-glibc2.34",
+  "cpu_count": 2,
+  "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+  "profile": "bench; thin LTO; codegen-units=1",
+  "runs": 3,
+  "warmup_batches": 10,
+  "samples_per_case_per_run": 40,
+  "source_sha256": {
+    "Cargo.toml": "ed4f5307c794ed0da8e75fd8f1ae827fbc01e5d3d9dda16183708e9200f56449",
+    "Cargo.lock": "503caece7dbf6a75e3a357f265b590f64c796064f1f8f6a3af2c2e283f365a71",
+    "src/document.rs": "673ed2d98e6c58f555cf462404566e6999a5c4fe9a2e01535a6b35939e69300e",
+    "src/history.rs": "e172300067e906e7b41cd5c6f1d728d6a5554af2385029f571757385aa956b3d",
+    "src/lib.rs": "2e333f11214fd6c4645c0c36d6d0b74231f3694a03f1d26bda23c21b8058ec4f",
+    "src/memory.rs": "6a7a78df49212742a9078a12aa16dbde532847ca06d5461cf6f1c36b4b83c865",
+    "src/project.rs": "097378fda92b92fba1c0a28a61f49fb0321cb278dac703a7905ac639e6b636de",
+    "src/search.rs": "6878e08ae264862d5de1712a994e8a79a073ebf4d74751dc6607d3fb80cd38c8",
+    "src/snapshot.rs": "cff7efdd5353522f3a7f1c9726ae35bc9a66394f8659c300abd1fdf5d0188bde",
+    "src/storage/chunk.rs": "113d6456c530cbc514574d4ebae9d23826ae920e6e7edf0cb88a2423f5b439e0",
+    "src/storage/mod.rs": "abf011f2b8ec078cc2481d3560eb3a461030099ca8526102b281fbe4c5ee261a",
+    "src/storage/tree.rs": "17e52590759e16b5b7dec459d3de83b1636b5add20237bbddcf24794fe995a85",
+    "src/text.rs": "4fd4a9d81702ec1a70c8aa73f3552d2d53069bbb47d7b2ef796e814944866948",
+    "src/version.rs": "edafa712e83e380e153a3b0e454694cf0a2b68ed7682c1cfc637a8c34066151c",
+    "benches/core.rs": "ab3f90de413fae37dc4ce10d0c2c4981b9816e1289bca05f761b3670eef212a1"
+  },
+  "cpu_info": "Architecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           46 bits physical, 48 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  2\nOn-line CPU(s) list:                     0,1\nVendor ID:                               GenuineIntel\nModel name:                              Intel(R) Xeon(R) Processor @ 2.50GHz\nCPU family:                              6\nModel:                                   85\nThread(s) per core:                      2\nCore(s) per socket:                      1\nSocket(s):                               1\nStepping:                                7\nBogoMIPS:                                5000.02\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch cpuid_fault ssbd ibrs ibpb stibp ibrs_enhanced fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx avx512f avx512dq rdseed adx smap clflushopt clwb avx512cd avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves arat umip pku ospke avx512_vnni md_clear flush_l1d arch_capabilities\nHypervisor vendor:                       KVM\nVirtualization type:                     full\nL1d cache:                               32 KiB (1 instance)\nL1i cache:                               32 KiB (1 instance)\nL2 cache:                                1 MiB (1 instance)\nL3 cache:                                35.8 MiB (1 instance)\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0,1\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Mitigation; Aligned branch/return thunks\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Mitigation; Clear CPU buffers; SMT Host state unknown\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Mitigation; Enhanced IBRS\nVulnerability Spec rstack overflow:      Not affected\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Enhanced / Automatic IBRS; IBPB conditional; PBRSB-eIBRS SW sequence; BHI Vulnerable\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Mitigation; TSX disabled\nVulnerability Vmscape:                   Not affected\n"
+}

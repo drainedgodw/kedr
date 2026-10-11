@@ -1,0 +1,1 @@
+{"case":"ascii","operations":1000000,"initial_bytes":16777216,"final_bytes":16777216,"final_pieces":31908,"tree_height":19,"compactions":30,"reference_checkpoints":16,"background_checks":245,"peak_rss_kib":239836,"history_step_limit":128,"change_log_capacity":256,"timing_includes_compaction":true}

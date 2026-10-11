@@ -1,2 +1,4 @@
 /target/
 /measurements.csv
+
+__pycache__/

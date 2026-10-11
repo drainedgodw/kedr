@@ -17,6 +17,7 @@ pub struct MemoryStats {
     pub node_bytes: usize,
     pub chunk_header_bytes: usize,
     pub history_container_bytes: usize,
+    pub change_log_bytes: usize,
 }
 impl MemoryStats {
     pub fn reachable_bytes(&self) -> usize {
@@ -25,6 +26,7 @@ impl MemoryStats {
             + self.node_bytes
             + self.chunk_header_bytes
             + self.history_container_bytes
+            + self.change_log_bytes
     }
 }
 pub(crate) fn estimate(root: &Tree, history: &History) -> MemoryStats {

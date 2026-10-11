@@ -40,3 +40,25 @@ fragmented Unicode inserts and all 4,096 undos. This is not long-running fuzzing
 Formatting, Clippy with warnings denied, Rustdoc with warnings denied and the
 background-worker example pass locally. Remote platform/MSRV jobs are separate
 and must be checked for the new commit, not inferred from old successful jobs.
+
+## Version 0.3 local checks
+
+47 tests pass in debug and optimized release on Linux x86_64 / Rust 1.99.0.
+New checks cover UTF-16 surrogate rejection, fragmented/checkpointed coordinate
+round trips, immutable indexes, delayed-consumer gaps, wrong/future versions,
+journal allocation release, batch/undo/redo event continuity, fork isolation,
+revision exhaustion without mutation and prepared-compaction version guards.
+Formatting, Clippy and Rustdoc with warnings denied also pass locally.
+
+The endurance example keeps a separate String reference, checks complete content
+and UTF-16 totals at checkpoints, round-trips sampled positions, verifies retained
+old snapshots and validates snapshots on a bounded background reader. Timings
+include threshold-triggered synchronous compaction, but exclude reference work,
+validation and output. Per-case raw timings and whole-process memory evidence are
+described in HARDENING.md. This is deterministic endurance, not fuzzing, a leak
+proof, a workload representing every IDE, or a real-time latency guarantee.
+
+CI adds 10,000-operation ASCII and Unicode smoke fixtures on the stable-platform
+matrix. Million-operation measurements are separate local runs, not inferred from
+CI configuration. Prior version 0.2 remote run 38144079710 completed successfully;
+it does not establish version 0.3 platform/MSRV results.

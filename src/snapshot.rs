@@ -44,6 +44,31 @@ impl Snapshot {
     pub fn position_to_byte(&self, line: usize, column: usize) -> Result<usize, EditError> {
         View(&self.root).position_to_byte(line, column)
     }
+    pub fn len_utf16(&self) -> usize {
+        tree::metrics(&self.root).utf16
+    }
+    pub fn byte_to_position_in(
+        &self,
+        at: usize,
+        encoding: crate::PositionEncoding,
+    ) -> Result<(usize, usize), EditError> {
+        View(&self.root).byte_to_position_in(at, encoding)
+    }
+    pub fn position_to_byte_in(
+        &self,
+        line: usize,
+        column: usize,
+        encoding: crate::PositionEncoding,
+    ) -> Result<usize, EditError> {
+        View(&self.root).position_to_byte_in(line, column, encoding)
+    }
+    /// Rebuild storage on a background thread without changing content/version.
+    pub fn compacted(&self) -> Self {
+        Self {
+            root: tree::from_text(self.to_text()),
+            version: self.version,
+        }
+    }
     pub fn find_iter<'a>(&'a self, needle: &'a str) -> Search<'a> {
         Search::new(self.chunks(), needle)
     }
@@ -84,21 +109,35 @@ impl View<'_> {
                 .eq(text.bytes())
     }
     pub fn byte_to_position(&self, at: usize) -> Result<(usize, usize), EditError> {
+        self.byte_to_position_in(at, crate::PositionEncoding::UnicodeScalar)
+    }
+    pub fn position_to_byte(&self, line: usize, column: usize) -> Result<usize, EditError> {
+        self.position_to_byte_in(line, column, crate::PositionEncoding::UnicodeScalar)
+    }
+    pub fn byte_to_position_in(
+        &self,
+        at: usize,
+        encoding: crate::PositionEncoding,
+    ) -> Result<(usize, usize), EditError> {
         if !tree::boundary(self.0, at) {
             return Err(EditError::NotCharacterBoundary);
         }
-        let prefix = tree::prefix(self.0, at);
+        let prefix = tree::prefix(self.0, at, encoding);
         let start = if prefix.newlines == 0 {
             0
         } else {
             tree::newline_byte(self.0, prefix.newlines - 1) + 1
         };
-        Ok((
-            prefix.newlines,
-            prefix.scalars - tree::prefix(self.0, start).scalars,
-        ))
+        let first = tree::prefix(self.0, start, encoding);
+        let col = prefix.units - first.units;
+        Ok((prefix.newlines, col))
     }
-    pub fn position_to_byte(&self, line: usize, column: usize) -> Result<usize, EditError> {
+    pub fn position_to_byte_in(
+        &self,
+        line: usize,
+        column: usize,
+        encoding: crate::PositionEncoding,
+    ) -> Result<usize, EditError> {
         let m = tree::metrics(self.0);
         if line > m.newlines {
             return Err(EditError::InvalidPosition);
@@ -113,13 +152,18 @@ impl View<'_> {
         } else {
             tree::newline_byte(self.0, line)
         };
-        let rank = tree::prefix(self.0, start).scalars;
-        let Some(target) = rank.checked_add(column) else {
-            return Err(EditError::InvalidPosition);
-        };
-        if target > tree::prefix(self.0, end).scalars {
+        let first = tree::prefix(self.0, start, encoding);
+        let last = tree::prefix(self.0, end, encoding);
+        let (rank, limit) = (first.units, last.units);
+        let target = rank.checked_add(column).ok_or(EditError::InvalidPosition)?;
+        if target > limit {
             return Err(EditError::InvalidPosition);
         }
-        Ok(tree::scalar_byte(self.0, target))
+        match encoding {
+            crate::PositionEncoding::UnicodeScalar => Ok(tree::scalar_byte(self.0, target)),
+            crate::PositionEncoding::Utf16 => {
+                tree::utf16_byte(self.0, target).ok_or(EditError::InvalidPosition)
+            }
+        }
     }
 }

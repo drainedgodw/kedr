@@ -56,9 +56,10 @@ enum Newlines {
 pub(crate) struct Chunk {
     pub text: Text,
     newlines: Newlines,
-    pub checkpoints: Vec<(usize, usize)>,
+    pub checkpoints: Vec<(usize, usize, usize)>,
     pub ascii: bool,
     pub scalars: usize,
+    pub utf16: usize,
 }
 impl Chunk {
     pub fn new(text: String) -> Arc<Self> {
@@ -89,17 +90,21 @@ impl Chunk {
             )
         };
         let mut checkpoints = Vec::new();
-        let scalars = if ascii {
-            text.len()
+        let indexed = text.len() > INLINE_BYTES;
+        let view: &str = &text;
+        let (scalars, utf16) = if ascii {
+            (view.len(), view.len())
         } else {
-            let mut count = 0;
-            for (at, _) in text.char_indices() {
-                if text.len() > INLINE_BYTES && count % CHECKPOINT_STRIDE == 0 {
-                    checkpoints.push((at, count));
+            let mut scalars = 0;
+            let mut units = 0;
+            for (count, (at, ch)) in view.char_indices().enumerate() {
+                if indexed && count.is_multiple_of(CHECKPOINT_STRIDE) {
+                    checkpoints.push((at, count, units));
                 }
-                count += 1;
+                scalars = count + 1;
+                units += ch.len_utf16();
             }
-            count
+            (scalars, units)
         };
         Arc::new(Self {
             text,
@@ -107,6 +112,7 @@ impl Chunk {
             checkpoints,
             ascii,
             scalars,
+            utf16,
         })
     }
     pub fn newline_rank(&self, at: usize) -> usize {
@@ -131,6 +137,28 @@ impl Chunk {
             Newlines::Wide(v) => v[rank],
         }
     }
+    pub fn ranks(&self, at: usize) -> (usize, usize) {
+        if self.ascii {
+            return (at, at);
+        }
+        if at == self.text.len() {
+            return (self.scalars, self.utf16);
+        }
+        let (byte, mut scalar, mut units) = if self.checkpoints.is_empty() {
+            (0, 0, 0)
+        } else {
+            let i = self
+                .checkpoints
+                .partition_point(|(p, _, _)| *p <= at)
+                .saturating_sub(1);
+            self.checkpoints[i]
+        };
+        for ch in self.text[byte..at].chars() {
+            scalar += 1;
+            units += ch.len_utf16();
+        }
+        (scalar, units)
+    }
     pub fn scalar_rank(&self, at: usize) -> usize {
         if self.ascii {
             return at;
@@ -138,15 +166,23 @@ impl Chunk {
         if at == self.text.len() {
             return self.scalars;
         }
-        if self.checkpoints.is_empty() {
-            return self.text[..at].chars().count();
-        }
-        let i = self
-            .checkpoints
-            .partition_point(|(p, _)| *p <= at)
-            .saturating_sub(1);
-        let (byte, scalar) = self.checkpoints[i];
+        let (byte, scalar) = if self.checkpoints.is_empty() {
+            (0, 0)
+        } else {
+            let i = self
+                .checkpoints
+                .partition_point(|(p, _, _)| *p <= at)
+                .saturating_sub(1);
+            let (byte, scalar, _) = self.checkpoints[i];
+            (byte, scalar)
+        };
         scalar + self.text[byte..at].chars().count()
+    }
+    pub fn rank(&self, at: usize, encoding: crate::PositionEncoding) -> usize {
+        match encoding {
+            crate::PositionEncoding::UnicodeScalar => self.scalar_rank(at),
+            crate::PositionEncoding::Utf16 => self.ranks(at).1,
+        }
     }
     pub fn scalar_byte(&self, scalar: usize) -> usize {
         if self.ascii {
@@ -155,19 +191,52 @@ impl Chunk {
         if scalar == self.scalars {
             return self.text.len();
         }
-        if self.checkpoints.is_empty() {
-            return self.text.char_indices().nth(scalar).unwrap().0;
-        }
-        let i = self
-            .checkpoints
-            .partition_point(|(_, s)| *s <= scalar)
-            .saturating_sub(1);
-        let (byte, count) = self.checkpoints[i];
+        let (byte, count) = if self.checkpoints.is_empty() {
+            (0, 0)
+        } else {
+            let i = self
+                .checkpoints
+                .partition_point(|(_, s, _)| *s <= scalar)
+                .saturating_sub(1);
+            let (b, s, _) = self.checkpoints[i];
+            (b, s)
+        };
         byte + self.text[byte..]
             .char_indices()
             .nth(scalar - count)
             .unwrap()
             .0
+    }
+    pub fn utf16_byte(&self, target: usize) -> Option<usize> {
+        if target > self.utf16 {
+            return None;
+        }
+        if self.ascii {
+            return Some(target);
+        }
+        if target == self.utf16 {
+            return Some(self.text.len());
+        }
+        let (byte, mut units) = if self.checkpoints.is_empty() {
+            (0, 0)
+        } else {
+            let i = self
+                .checkpoints
+                .partition_point(|(_, _, u)| *u <= target)
+                .saturating_sub(1);
+            let (b, _, u) = self.checkpoints[i];
+            (b, u)
+        };
+        for (at, ch) in self.text[byte..].char_indices() {
+            if units == target {
+                return Some(byte + at);
+            }
+            units += ch.len_utf16();
+            if units > target {
+                return None;
+            }
+        }
+        None
     }
     pub fn index_bytes(&self) -> usize {
         let nl = match &self.newlines {
@@ -175,6 +244,6 @@ impl Chunk {
             Newlines::Narrow(v) => v.capacity() * std::mem::size_of::<u32>(),
             Newlines::Wide(v) => v.capacity() * std::mem::size_of::<usize>(),
         };
-        nl + self.checkpoints.capacity() * std::mem::size_of::<(usize, usize)>()
+        nl + self.checkpoints.capacity() * std::mem::size_of::<(usize, usize, usize)>()
     }
 }

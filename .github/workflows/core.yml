@@ -18,6 +18,8 @@ jobs:
       - run: cargo test --locked
       - run: cargo test --locked --release
       - run: cargo run --quiet --example background
+      - run: cargo run --locked --release --quiet --example endurance -- unicode 10000 endurance-smoke
+      - run: cargo run --locked --release --quiet --example endurance -- ascii 10000 endurance-smoke
       - run: cargo doc --locked --no-deps
         env:
           RUSTDOCFLAGS: "-D warnings"

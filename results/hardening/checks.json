@@ -1,0 +1,7 @@
+{
+  "endurance_rows": 2000000,
+  "micro_rows": 6960,
+  "micro_cases": 29,
+  "independent_quantiles_match": true,
+  "all_case_medians_independently_match": true
+}

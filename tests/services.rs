@@ -211,5 +211,6 @@ fn memory_total_includes_inline_chunk_headers() {
             + s.node_bytes
             + s.chunk_header_bytes
             + s.history_container_bytes
+            + s.change_log_bytes
     );
 }

@@ -20,8 +20,23 @@ pub enum EditError {
     NotCharacterBoundary,
     OverlappingEdits,
     InvalidPosition,
-    StaleRevision { expected: u64, actual: u64 },
-    WrongDocument { expected: u64, actual: u64 },
+    RevisionExhausted,
+    FutureRevision {
+        requested: u64,
+        current: u64,
+    },
+    ChangeLogGap {
+        requested: u64,
+        oldest_available: u64,
+    },
+    StaleRevision {
+        expected: u64,
+        actual: u64,
+    },
+    WrongDocument {
+        expected: u64,
+        actual: u64,
+    },
 }
 impl fmt::Display for EditError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -68,6 +83,7 @@ pub struct TextBuffer {
     revision: u64,
     history: History,
     last_change: Option<ChangeSummary>,
+    journal: crate::journal::ChangeJournal,
 }
 impl Clone for TextBuffer {
     fn clone(&self) -> Self {
@@ -77,6 +93,7 @@ impl Clone for TextBuffer {
             revision: self.revision,
             history: self.history.clone(),
             last_change: None,
+            journal: crate::journal::ChangeJournal::new(self.journal.limit()),
         }
     }
 }
@@ -102,6 +119,7 @@ impl TextBuffer {
             revision: 0,
             history: History::new(limit),
             last_change: None,
+            journal: crate::journal::ChangeJournal::new(0),
         }
     }
     pub fn len_bytes(&self) -> usize {
@@ -132,7 +150,9 @@ impl TextBuffer {
         self.history.clear();
     }
     pub fn memory_stats(&self) -> MemoryStats {
-        crate::memory::estimate(&self.root, &self.history)
+        let mut stats = crate::memory::estimate(&self.root, &self.history);
+        stats.change_log_bytes = self.journal.allocated_bytes();
+        stats
     }
     /// Backing text bytes reachable from the buffer/history. O(reachable nodes).
     pub fn text_capacity_bytes(&self) -> usize {
@@ -145,6 +165,29 @@ impl TextBuffer {
         Snapshot {
             root: self.root.clone(),
             version: self.version(),
+        }
+    }
+    /// Optional bounded invalidation log. Zero disables it and frees storage.
+    pub fn set_change_log_capacity(&mut self, capacity: usize) {
+        self.journal.set_limit(capacity);
+    }
+    pub fn changes_since(
+        &self,
+        version: crate::Version,
+    ) -> Result<impl Iterator<Item = &ChangeSummary>, EditError> {
+        if version.document_id != self.document_id {
+            return Err(EditError::WrongDocument {
+                expected: version.document_id,
+                actual: self.document_id,
+            });
+        }
+        self.journal.since(version.revision, self.revision)
+    }
+    fn ensure_revision_available(&self) -> Result<(), EditError> {
+        if self.revision == u64::MAX {
+            Err(EditError::RevisionExhausted)
+        } else {
+            Ok(())
         }
     }
     pub fn last_change(&self) -> Option<&ChangeSummary> {
@@ -180,6 +223,7 @@ impl TextBuffer {
         if View(&self.root).range_equals(range.clone(), replacement) {
             return Ok(());
         }
+        self.ensure_revision_available()?;
         let before = if self.history.limit > 0 {
             self.root.clone()
         } else {
@@ -199,15 +243,20 @@ impl TextBuffer {
     }
     fn changed(&mut self, old_range: Range<usize>, inserted_bytes: usize, old_line_count: usize) {
         let old_revision = self.revision;
-        self.revision = self.revision.saturating_add(1);
-        self.last_change = Some(ChangeSummary {
+        self.revision = self
+            .revision
+            .checked_add(1)
+            .expect("revision capacity validated");
+        let change = ChangeSummary {
             old_revision,
             new_revision: self.revision,
             old_range,
             inserted_bytes,
             old_line_count,
             new_line_count: self.line_count(),
-        });
+        };
+        self.journal.record(&change);
+        self.last_change = Some(change);
     }
     /// Internal tree splice; validated coordinates, no string materialization.
     fn replace_tree(&mut self, range: Range<usize>, replacement: Tree) -> Tree {
@@ -258,6 +307,7 @@ impl TextBuffer {
         {
             return Ok(());
         }
+        self.ensure_revision_available()?;
         let span = edits[0].range.start..edits.last().unwrap().range.end;
         let root_before = self.root.clone();
         let (_, tail) = tree::split(self.root.clone(), span.start);
@@ -281,9 +331,14 @@ impl TextBuffer {
         Ok(())
     }
     pub fn undo(&mut self) -> bool {
-        let Some(change) = self.history.undo.pop_back() else {
-            return false;
-        };
+        self.try_undo().unwrap_or(false)
+    }
+    pub fn try_undo(&mut self) -> Result<bool, EditError> {
+        if self.history.undo.is_empty() {
+            return Ok(false);
+        }
+        self.ensure_revision_available()?;
+        let change = self.history.undo.pop_back().unwrap();
         let old_lines = self.line_count();
         self.root = change.before.clone();
         self.changed(
@@ -292,12 +347,17 @@ impl TextBuffer {
             old_lines,
         );
         self.history.redo.push(change);
-        true
+        Ok(true)
     }
     pub fn redo(&mut self) -> bool {
-        let Some(change) = self.history.redo.pop() else {
-            return false;
-        };
+        self.try_redo().unwrap_or(false)
+    }
+    pub fn try_redo(&mut self) -> Result<bool, EditError> {
+        if self.history.redo.is_empty() {
+            return Ok(false);
+        }
+        self.ensure_revision_available()?;
+        let change = self.history.redo.pop().unwrap();
         let old_lines = self.line_count();
         self.root = change.after.clone();
         self.changed(
@@ -306,7 +366,25 @@ impl TextBuffer {
             old_lines,
         );
         self.history.undo.push_back(change);
-        true
+        Ok(true)
+    }
+    /// Adopt same-content storage prepared from this exact document/version.
+    /// Stale work is rejected; the content revision and invalidation log do not advance.
+    pub fn install_compacted(&mut self, prepared: Snapshot) -> Result<(), EditError> {
+        if prepared.version().document_id != self.document_id {
+            return Err(EditError::WrongDocument {
+                expected: prepared.version().document_id,
+                actual: self.document_id,
+            });
+        }
+        if prepared.revision() != self.revision {
+            return Err(EditError::StaleRevision {
+                expected: prepared.revision(),
+                actual: self.revision,
+            });
+        }
+        self.root = prepared.root;
+        Ok(())
     }
     /// Consolidate the live root. History/external snapshots may retain old chunks.
     pub fn compact(&mut self) {
@@ -317,6 +395,24 @@ impl TextBuffer {
     }
     pub fn position_to_byte(&self, line: usize, column: usize) -> Result<usize, EditError> {
         View(&self.root).position_to_byte(line, column)
+    }
+    pub fn len_utf16(&self) -> usize {
+        tree::metrics(&self.root).utf16
+    }
+    pub fn byte_to_position_in(
+        &self,
+        offset: usize,
+        encoding: crate::PositionEncoding,
+    ) -> Result<(usize, usize), EditError> {
+        View(&self.root).byte_to_position_in(offset, encoding)
+    }
+    pub fn position_to_byte_in(
+        &self,
+        line: usize,
+        column: usize,
+        encoding: crate::PositionEncoding,
+    ) -> Result<usize, EditError> {
+        View(&self.root).position_to_byte_in(line, column, encoding)
     }
     pub fn find_iter<'a>(&'a self, needle: &'a str) -> Search<'a> {
         Search::new(self.chunks(), needle)
@@ -345,5 +441,44 @@ mod tests {
             tree::verify(&b.root);
         }
         assert_eq!(b.to_text(), "x".repeat(4096));
+    }
+    #[test]
+    fn exhausted_revision_rejects_real_edits_without_mutation() {
+        let mut b = TextBuffer::new("a");
+        b.revision = u64::MAX - 1;
+        b.set_change_log_capacity(4);
+        b.replace(0..1, "b").unwrap();
+        assert_eq!(b.revision(), u64::MAX);
+        let history = b.history_bytes();
+        let event = b.last_change().cloned();
+        assert_eq!(b.replace(0..1, "c"), Err(EditError::RevisionExhausted));
+        assert_eq!(
+            b.apply_edits(&[Edit {
+                range: 0..1,
+                replacement: "d".into()
+            }]),
+            Err(EditError::RevisionExhausted)
+        );
+        assert_eq!(b.try_undo(), Err(EditError::RevisionExhausted));
+        assert!(!b.undo());
+        assert_eq!(b.to_text(), "b");
+        assert_eq!(b.history_bytes(), history);
+        assert_eq!(b.last_change(), event.as_ref());
+        b.replace(0..1, "b").unwrap();
+        assert_eq!(b.revision(), u64::MAX);
+        b.apply_edits(&[Edit {
+            range: 0..1,
+            replacement: "b".into(),
+        }])
+        .unwrap();
+
+        let mut redo = TextBuffer::new("a");
+        redo.replace(0..1, "b").unwrap();
+        assert!(redo.undo());
+        redo.revision = u64::MAX;
+        assert_eq!(redo.try_redo(), Err(EditError::RevisionExhausted));
+        assert!(!redo.redo());
+        assert_eq!(redo.to_text(), "a");
+        assert_eq!(redo.history.redo.len(), 1);
     }
 }

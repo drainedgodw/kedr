@@ -7,6 +7,7 @@ pub(crate) struct Metrics {
     pub bytes: usize,
     pub newlines: usize,
     pub scalars: usize,
+    pub utf16: usize,
     pub leaves: usize,
 }
 impl std::ops::Add for Metrics {
@@ -16,6 +17,7 @@ impl std::ops::Add for Metrics {
             bytes: self.bytes + other.bytes,
             newlines: self.newlines + other.newlines,
             scalars: self.scalars + other.scalars,
+            utf16: self.utf16 + other.utf16,
             leaves: self.leaves + other.leaves,
         }
     }
@@ -38,12 +40,14 @@ pub(crate) struct Node {
 }
 impl Node {
     pub fn leaf(piece: Piece) -> Arc<Self> {
+        let start = piece.source.ranks(piece.range.start);
+        let end = piece.source.ranks(piece.range.end);
         let m = Metrics {
             bytes: piece.range.len(),
             newlines: piece.source.newline_rank(piece.range.end)
                 - piece.source.newline_rank(piece.range.start),
-            scalars: piece.source.scalar_rank(piece.range.end)
-                - piece.source.scalar_rank(piece.range.start),
+            scalars: end.0 - start.0,
+            utf16: end.1 - start.1,
             leaves: 1,
         };
         Arc::new(Self {
@@ -209,24 +213,38 @@ pub(crate) fn boundary(tree: &Tree, at: usize) -> bool {
         }
     }
 }
+#[derive(Default)]
+pub(crate) struct Prefix {
+    pub newlines: usize,
+    pub units: usize,
+}
+fn units(m: Metrics, encoding: crate::PositionEncoding) -> usize {
+    match encoding {
+        crate::PositionEncoding::UnicodeScalar => m.scalars,
+        crate::PositionEncoding::Utf16 => m.utf16,
+    }
+}
 /// Prefix ranks exclude the character/newline at the supplied byte offset.
-pub(crate) fn prefix(tree: &Tree, at: usize) -> Metrics {
+/// Scan only the requested encoding; scalar cursors do not decode UTF-16 counts.
+pub(crate) fn prefix(tree: &Tree, at: usize, encoding: crate::PositionEncoding) -> Prefix {
     let Some(mut node) = tree.as_deref() else {
-        return Metrics::default();
+        return Prefix::default();
     };
     let mut at = at;
-    let mut result = Metrics::default();
+    let mut result = Prefix::default();
     loop {
         if at == node.metrics.bytes {
-            return result + node.metrics;
+            result.newlines += node.metrics.newlines;
+            result.units += units(node.metrics, encoding);
+            return result;
         }
         match &node.kind {
             Kind::Leaf(p) => {
                 let end = p.range.start + at;
-                result.bytes += at;
                 result.newlines +=
                     p.source.newline_rank(end) - p.source.newline_rank(p.range.start);
-                result.scalars += p.source.scalar_rank(end) - p.source.scalar_rank(p.range.start);
+                result.units +=
+                    p.source.rank(end, encoding) - p.source.rank(p.range.start, encoding);
                 return result;
             }
             Kind::Branch(l, r) => {
@@ -234,7 +252,8 @@ pub(crate) fn prefix(tree: &Tree, at: usize) -> Metrics {
                     node = l;
                 } else {
                     at -= l.metrics.bytes;
-                    result = result + l.metrics;
+                    result.newlines += l.metrics.newlines;
+                    result.units += units(l.metrics, encoding);
                     node = r;
                 }
             }
@@ -285,6 +304,38 @@ pub(crate) fn scalar_byte(tree: &Tree, rank: usize) -> usize {
                     node = l;
                 } else {
                     rank -= l.metrics.scalars;
+                    offset += l.metrics.bytes;
+                    node = r;
+                }
+            }
+        }
+    }
+}
+
+pub(crate) fn utf16_byte(tree: &Tree, rank: usize) -> Option<usize> {
+    let m = metrics(tree);
+    if rank > m.utf16 {
+        return None;
+    }
+    if rank == m.utf16 {
+        return Some(m.bytes);
+    }
+    let mut node = tree.as_deref()?;
+    let mut rank = rank;
+    let mut offset = 0;
+    loop {
+        match &node.kind {
+            Kind::Leaf(p) => {
+                return p
+                    .source
+                    .utf16_byte(p.source.ranks(p.range.start).1 + rank)
+                    .map(|b| offset + b - p.range.start);
+            }
+            Kind::Branch(l, r) => {
+                if rank < l.metrics.utf16 {
+                    node = l;
+                } else {
+                    rank -= l.metrics.utf16;
                     offset += l.metrics.bytes;
                     node = r;
                 }

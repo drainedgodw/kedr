@@ -1,0 +1,3 @@
+case,operations,initial_bytes,final_bytes,final_pieces,tree_height,compactions,reference_checkpoints,background_checks,peak_rss_kib,history_step_limit,change_log_capacity,timing_includes_compaction,p50_us,p95_us,p99_us,max_us,over_1ms_operations,max_checkpoint_reachable_bytes,last_checkpoint_reachable_bytes,raw_sha256
+ascii,1000000,16777216,16777216,31908,19,30,16,245,239836,128,256,True,9.421,17.416,23.277010000000008,62034.091,115,32829232,24763992,2d6033a9b36b74ab3e32a8073c0102eac481b4b795a446133a39aa0ff79fea32
+unicode,1000000,30720,29711,17920,18,0,16,245,29580,128,256,True,7.686,10.385,18.42701000000001,4941.684,12,5847760,5791976,edf59b8981fa6133f9ac4f641c620dabf0a80232e1240e1c74307c45146f6cf8

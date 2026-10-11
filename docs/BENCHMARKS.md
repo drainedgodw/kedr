@@ -80,3 +80,34 @@ Only the core implementation changes; fixtures and workload semantics match.
 New immutable Snapshot is lighter than a complete mutable TextBuffer clone, but
 clone_buffer benchmarks the same existing clone API in both versions. No before/
 after Snapshot benchmark is claimed because the old API had no equivalent method.
+
+## Version 0.3 endurance and tail latency
+
+The existing 29-case harness is unchanged for the 0.2-to-0.3 microcomparison.
+The separate endurance fixture measures **individual real replacements**, not
+batch means. Run both ASCII and Unicode fixtures with the standard-library-only
+Python collector:
+
+```bash
+python3 scripts/endurance.py --operations 1000000 --out results/local-endurance
+```
+
+Each case runs once with a fixed seed and keeps a separate String reference,
+128 history steps, 256 journal entries, at most two retained checkpoint snapshots
+and a bounded two-message reader channel. ASCII starts at 16 MiB; Unicode starts
+at 30 KiB. Those different sizes/workloads must not be compared as an encoding
+speed ranking. A single timed operation includes compaction when the pre-edit
+piece count exceeds 65,536; separate reference edits, checks, memory samples,
+snapshot submissions and output are outside the timer. Reader scheduling can
+still affect latency. No warmup is discarded. Quantiles use linear interpolation.
+
+The endurance executable uses the normal optimized release profile (no explicit
+LTO), unlike the bench harness's thin-LTO profile. Its Linux whole-process VmHWM
+includes reference Strings, retained/queued snapshots, the timing vector,
+allocator overhead and background thread. Reachable allocation estimates exclude
+external snapshot roots and are sampled outside timed operations. Neither measure
+is a hard kernel memory cap or evidence of zero leaks on every workload.
+
+See HARDENING.md for final source hashes, local results and regressions. Run on
+real target machines before adopting a compaction/scheduling policy; p99 and the
+maximum are both reported because rare maintenance is not a real-time guarantee.

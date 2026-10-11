@@ -1,0 +1,1 @@
+{"case":"unicode","operations":1000000,"initial_bytes":30720,"final_bytes":29711,"final_pieces":17920,"tree_height":18,"compactions":0,"reference_checkpoints":16,"background_checks":245,"peak_rss_kib":29580,"history_step_limit":128,"change_log_capacity":256,"timing_includes_compaction":true}

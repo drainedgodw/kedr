@@ -1,56 +1,64 @@
 # Architecture and contracts
 
-## Text engine
+## Indexed text storage
 
-An immutable original string plus append-only added text and a vector of pieces.
-Every piece identifies a UTF-8-aligned range in one backing string. Adjacent
-contiguous pieces are coalesced. Edits rewrite the piece vector, not the entire
-text. Undo stores replacement deltas, not complete document snapshots.
+Persistent AVL piece tree. Immutable chunks hold text, adaptive 32/64-bit newline offsets and sparse
+Unicode-scalar checkpoints; ASCII chunks need no scalar checkpoint array.
+Edit payloads up to 24 UTF-8 bytes are stored inline; tiny chunks need no index allocation.
+Branches cache byte/scalar/newline/piece counts and height. Split/join shares
+unmodified subtrees and validates UTF-8 boundaries before mutation.
 
-- Public offsets are UTF-8 **byte** offsets, not UTF-16 units or grapheme indexes.
-- Validation errors do not mutate text, revision or history.
-- Batches use coordinates from the original pre-batch document. Overlapping
-  ranges and edits with the same start are rejected. A batch is one undo step.
-- Cursor columns count Unicode scalar values; combining characters and emoji
-  clusters may occupy multiple columns. Lines split at LF; CRLF bytes are preserved.
-- Revisions increase after real changes, undo and redo; no-op edits do not increment.
-- History has an 8 MiB default payload budget, excluding collection overhead.
-  A change larger than the budget clears prior history and is not undoable.
-- Deleted added-text storage is reclaimed only by explicit `compact()`. Compaction
-  leaves delta history valid and does not change revision or logical content.
+- Piece lookup/splice: O(log P) tree work, plus replacement indexing and reported history.
+- Cursor mapping: tree rank/select plus backing-index binary searches and at most
+  256 Unicode scalars scanned per checkpoint query. No whole-document cursor scan.
+- New buffers still need O(text bytes) index construction. Metadata consumes memory.
+- Snapshots are O(1) immutable root handles, Send + Sync, with no writer lock.
+- A mutable TextBuffer clone shares text but clones history entries and receives a
+  new process-local document identity. Use Snapshot for background readers.
+- Literal search is lazy: native str search on one chunk, KMP across chunks.
+  It does not flatten the document; fragmented-search constants can still differ.
+- Slice iteration skips unrelated subtrees. to_text explicitly allocates contiguous text.
 
-## Costs and known limits
+## Public coordinates and versions
 
-The piece vector is **not balanced**: locating/splitting pieces is O(piece count).
-Sustained scattered inserts fragment it. Added-text storage can grow even when
-history is bounded. `text_capacity_bytes` excludes piece/history/allocator costs
-and is not process RSS. Cursor mapping is O(document bytes); cached line count
-is O(1). Search materializes the document and returns non-overlapping literal
-matches. Multi-edit batches materialize their affected span. These are explicit
-optimization targets, not claims of a production-ready engine.
+Offsets are UTF-8 byte offsets; columns are Unicode scalar values, not graphemes or
+UTF-16 code units. Preserve BOM and CRLF bytes. Revisions increase on real content
+changes and undo/redo; compaction does not change content revision. Version pairs
+process-local document identity with content revision, not a persistent/global UUID.
 
-## Documents
+Build EditBatch from the exact Snapshot read by a background worker. Applying it
+rejects another document or stale revision before mutation. Batches use original
+coordinates, reject overlapping/same-start edits and form one undo transaction.
+No-op batches emit no change. ChangeSummary is the latest invalidation envelope,
+not a subscriber bus or a retained event log; consumers must own scheduling/coalescing.
 
-Reject invalid UTF-8 and files larger than 16 MiB, with a bounded read rather
-than trusting metadata. Preserve BOM and line endings. Dirty state compares
-streamed text to the last saved contents. Save writes chunks to an exclusively
-created file beside the destination, copies permissions, syncs the staged file,
-rechecks external contents and renames it into place.
+## History and retention
 
-The checks are not a filesystem lock: a concurrent writer can race the final
-check. Atomic replacement depends on filesystem/platform semantics; directory
-sync and power-loss durability are not promised. Hard links, ACLs, extended
-attributes and ownership may not survive replacement. Symlink targets are resolved
-at open. Missing files and external changes are not silently recreated/overwritten.
+Undo/redo switches between structurally shared version roots in O(1), not flattened text copies.
+The default limits are 8 MiB of logical affected bytes and 4,096 steps.
+set_history_step_limit adjusts the latter. The byte budget includes a
+batch's affected span on both sides of the change. It is **not** a physical-memory cap. A small range can pin a
+large immutable backing chunk. Oversized changes clear older history and are not
+undoable. clear_history releases retained undo roots; compact consolidates only the
+live root. External snapshots/history can keep old storage alive after compaction.
 
-## Project discovery
+memory_stats traverses and deduplicates nodes/chunks reachable from this buffer
+and its history. It excludes externally held snapshot roots, allocator overhead,
+thread stacks and unrelated process allocations. Shared bytes are counted once
+per call but are not exclusively owned. It is O(reachable nodes), not a hot-path getter.
+Linux VmHWM measurements in the performance report are whole-process peak RSS.
 
-Iterative bounded directory traversal; skip symbolic links and common generated
-directories. Return sorted file paths, explicit truncation and skipped-entry
-counts. A truncated subset may differ with filesystem enumeration order. This is
-synchronous discovery, not a background watcher or semantic index.
+## Documents and projects
 
-## Independence
+Document reading/saving and bounded project discovery remain separate from text.
+Reject invalid UTF-8 and documents larger than 16 MiB. Staged save syncs a file,
+rechecks external text and renames beside the destination. This is not a writer lock
+or a power-loss/ACL/hard-link preservation guarantee. Project discovery is synchronous,
+bounded, skips symlinks/generated folders and reports truncation/skipped entries.
 
-Standard library only. No existing IDE code or proprietary assets. No language
-server, executable project scripts or network service is invoked by this crate.
+## Boundaries
+
+Standard library only; no GUI, network service or project script execution.
+No parser, semantic index, terminal, debugger, plugin runtime, grapheme/LSP UTF-16
+adapter or distributed collaboration protocol is implemented. These can consume
+snapshots and validated batches without coupling language-specific logic to storage.

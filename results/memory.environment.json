@@ -1,0 +1,9 @@
+{
+  "method": "Linux child executable VmHWM; whole-process peak RSS KiB",
+  "runs_per_case": 3,
+  "source_sha256": {
+    "before": "72fdef9dece9a6e5dbc9981bdeb9548cc1c4ccbcaf1b04191780ffba6a538944",
+    "after": "4b8af2f674f8b6631d5528b922ee498d5e1a736f5d95ac5562ed40a0c64ec5e8"
+  },
+  "fixture": "4 MiB line-rich text; 4096 ASCII inserts, 1024 history-enabled inserts, or 32 TextBuffer clones"
+}

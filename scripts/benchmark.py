@@ -13,7 +13,7 @@ if not 1 <= args.runs <= 20:
 root = Path(__file__).resolve().parents[1]
 out = args.out.resolve()
 out.mkdir(parents=True, exist_ok=True)
-sources = [root/'Cargo.toml', root/'Cargo.lock'] + sorted((root/'src').glob('*.rs')) + sorted((root/'benches').glob('*.rs'))
+sources = [root/'Cargo.toml', root/'Cargo.lock'] + sorted((root/'src').rglob('*.rs')) + sorted((root/'benches').glob('*.rs'))
 fingerprints = {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}
 metadata = {'utc': datetime.now(timezone.utc).isoformat(), 'platform': platform.platform(),
             'cpu_count': os.cpu_count(), 'rustc': subprocess.check_output(['rustc','--version','--verbose'],text=True),

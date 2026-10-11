@@ -62,3 +62,21 @@ The summarizer checks row counts, case/sample uniqueness and positive timings;
 independently rechecks every median with csv/statistics, and writes the evidence
 object, full summary and result report. The initial source SHA-256 values in
 `environment.json` must match the measured code, not a later revision.
+
+## Version 0.2 paired comparison
+
+The old vector engine and new AVL engine run the same expanded harness in three
+separate processes each on the same VM. Added common cases: ASCII/Unicode buffer
+construction, full TextBuffer cloning, Unicode cursor lookup and literal Unicode
+search. Original cases are unchanged. This rerun is the comparison baseline;
+it does not compare a new run against a favorable historical run on another machine.
+
+`examples/footprint.rs` measures Linux whole-process VmHWM in KiB for independent
+executables: a 4 MiB line-rich buffer, 4,096 sustained inserts, 1,024 history-enabled inserts, or 32 full buffer
+clones. Three fresh processes per version/case. The high-water mark includes
+construction/transient allocations and is not exclusive text heap or current RSS.
+Only the core implementation changes; fixtures and workload semantics match.
+
+New immutable Snapshot is lighter than a complete mutable TextBuffer clone, but
+clone_buffer benchmarks the same existing clone API in both versions. No before/
+after Snapshot benchmark is claimed because the old API had no equivalent method.

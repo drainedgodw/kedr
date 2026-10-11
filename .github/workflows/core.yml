@@ -16,6 +16,11 @@ jobs:
           components: rustfmt, clippy
       - run: cargo fmt --check
       - run: cargo test --locked
+      - run: cargo test --locked --release
+      - run: cargo run --quiet --example background
+      - run: cargo doc --locked --no-deps
+        env:
+          RUSTDOCFLAGS: "-D warnings"
       - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo bench --locked --bench core --no-run
   msrv:

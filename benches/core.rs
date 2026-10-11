@@ -203,4 +203,45 @@ fn main() {
         assert_eq!(scan.files.len(), 1000);
         black_box(scan);
     });
+    let ascii = "x".repeat(1024 * 1024);
+    measure("construct_ascii", "piece_table", ascii.len(), 8, || {
+        for _ in 0..8 {
+            black_box(TextBuffer::new(black_box(ascii.clone())));
+        }
+    });
+    let unicode = "🌲б\n".repeat(1024 * 1024 / 7);
+    measure("construct_unicode", "piece_table", unicode.len(), 4, || {
+        for _ in 0..4 {
+            black_box(TextBuffer::new(black_box(unicode.clone())));
+        }
+    });
+    let buf = TextBuffer::new(ascii);
+    measure("clone_buffer", "piece_table", buf.len_bytes(), 64, || {
+        for _ in 0..64 {
+            black_box(buf.clone());
+        }
+    });
+    let buf = TextBuffer::new(unicode.clone());
+    measure(
+        "cursor_unicode_near_end",
+        "piece_table",
+        unicode.len(),
+        8,
+        || {
+            for _ in 0..8 {
+                black_box(buf.byte_to_position(black_box(unicode.len() - 7)).unwrap());
+            }
+        },
+    );
+    measure(
+        "literal_search_unicode",
+        "piece_table",
+        unicode.len(),
+        4,
+        || {
+            for _ in 0..4 {
+                black_box(buf.find_all(black_box("б\n🌲")));
+            }
+        },
+    );
 }

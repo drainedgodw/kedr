@@ -25,3 +25,18 @@ Linux x86_64, Rust 1.99.0: `cargo fmt --check`, all 22 tests, and
 Three process runs completed; 24 cases x 40 measured batches x 3 runs = 2,880 rows.
 All 24 case medians were independently reconciled. This records local evidence,
 not yet GitHub Actions success or Windows/macOS execution.
+
+## Version 0.2 local checks
+
+35 tests pass in debug and optimized release on Linux x86_64 / Rust 1.99.0.
+All previous reference and filesystem tests remain. New tests cover immutable
+snapshot lifetime/cross-thread reads, stale/wrong-document batch rejection,
+no-op transactions, change envelopes, long Unicode checkpoint round trips,
+streaming search, history step/redo pruning and deduplicated allocation accounting
+including inline chunk headers. An internal stress test
+checks every AVL node's balance/height/aggregate metrics after each of 4,096
+fragmented Unicode inserts and all 4,096 undos. This is not long-running fuzzing.
+
+Formatting, Clippy with warnings denied, Rustdoc with warnings denied and the
+background-worker example pass locally. Remote platform/MSRV jobs are separate
+and must be checked for the new commit, not inferred from old successful jobs.

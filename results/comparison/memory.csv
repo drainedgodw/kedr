@@ -1,0 +1,9 @@
+version,workload,median_peak_rss_kib,min_peak_rss_kib,max_peak_rss_kib
+after,clones,7680.0,7672,7680
+after,fragmented,9600.0,9596,9600
+after,history,13304.0,13296,13312
+after,lines,7580.0,7580,7676
+before,clones,137336.0,137224,137336
+before,fragmented,6512.0,6472,6632
+before,history,10232.0,10040,10232
+before,lines,6008.0,5992,6008

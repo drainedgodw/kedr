@@ -1,0 +1,10 @@
+[package]
+name = "kedr-ui"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+[dependencies]
+kedr-core = { path = "../.." }
+kedr-workbench = { path = "../kedr-workbench" }
+egui = { version = "=0.33.3", features = ["accesskit"] }

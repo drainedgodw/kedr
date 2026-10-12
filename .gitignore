@@ -2,3 +2,10 @@
 /measurements.csv
 
 __pycache__/
+
+/ui-captures/
+/dist/
+/kedr-studio-*.tar.gz
+/kedr-studio-*.zip
+/tests/fixtures/studio/target/
+/tests/fixtures/studio/Cargo.lock

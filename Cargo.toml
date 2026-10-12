@@ -17,3 +17,8 @@ harness = false
 [profile.bench]
 lto = "thin"
 codegen-units = 1
+
+[workspace]
+members = ["crates/kedr-workbench", "crates/kedr-ui", "apps/studio"]
+default-members = ["."]
+resolver = "3"

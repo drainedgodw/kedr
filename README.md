@@ -1,58 +1,62 @@
 # Kedr
 
-GUI-independent Rust editor core. **Core first; no IDE products or UI.**
-Standard library only. No runtime service, paid activation, accounts or telemetry.
+Open-source, local-first development tools. **Kedr Studio is the first native desktop
+preview**, built on the independently developed Rust text core. MIT licensed; no
+Kedr account, telemetry, paid activation or runtime cloud service required.
 
-## Current foundation
+## Studio
 
-- Persistent balanced AVL piece tree with indexed line/scalar/UTF-16 rank/select.
-- UTF-8 byte edits, all-or-nothing batches and shared-subtree undo/redo.
-- O(1) immutable snapshots for background readers.
-- Document identity + revision checks for background edits and prepared compaction.
-- Optional bounded invalidation journal with explicit resynchronization errors.
-- Lazy cross-piece search and explicit text materialization.
-- Document save protections and bounded project discovery.
-- Reachable-memory diagnostics, correctness tests and before/after benchmarks.
-- Million-operation endurance fixtures with individual latency and memory evidence.
+A calm shared workbench: Midnight/Daylight appearance, file explorer, tabs, quick
+navigation, command palette, viewport-rendered editor, find/replace, saved-project
+search, safe-save guards and explicitly trusted Cargo check/test tasks.
 
-There is no parser, semantic index, debugger, plugin runtime, UI or product catalog.
-Improved microbenchmarks do not imply superiority over another IDE or all workloads.
+This is an early editor/workbench, **not a complete JetBrains replacement**. Language
+server completion, semantic refactoring, debugger and terminal are still ahead.
 
-## Develop
-
-Rust 1.88+:
+[Download/build guide](products/studio.md) · [Product direction](docs/studio/PRODUCT.md) ·
+[Shared design contract](docs/studio/DESIGN.md) · [Validation](docs/studio/VALIDATION.md)
 
 ```bash
-cargo fmt --check
-cargo test --locked
-cargo test --locked --release
-cargo clippy --locked --all-targets -- -D warnings
-cargo bench --locked --bench core > measurements.csv
-cargo run --example background
-cargo run --release --example endurance -- unicode 10000 results/local-endurance
-cargo doc --no-deps --open
+cargo run --locked --release -p kedr-studio -- /path/to/project
 ```
 
-[API integration](docs/API.md) · [Architecture and limits](docs/ARCHITECTURE.md) ·
-[Historical 0.1→0.2 comparison](PERFORMANCE.md) · [Benchmark methodology](docs/BENCHMARKS.md) ·
-[Validation](docs/VALIDATION.md) · [0.3 hardening](docs/HARDENING.md)
+[Platform preview artifacts](https://github.com/drainedgodw/kedr/actions/workflows/studio.yml)
+are available only when the corresponding job actually succeeds. They are unsigned
+previews, not stable installers. Linux X11 was inspected locally; physical Windows,
+macOS and Wayland interaction testing remains separate.
 
-The original baseline remains in `BENCHMARK_RESULTS.md`. New paired runs,
-historical 0.1→0.2 source fingerprints and whole-process memory measurements are in `results/before/`,
-`results/after/` and `results/comparison/`. See the report for **regressions as well as gains**. Version 0.3 evidence is in
-`results/hardening/` and `docs/HARDENING.md`.
-
-## Structure
+## One repository, one shared interface
 
 ```text
-src/storage/   Immutable backing indexes and persistent AVL storage
-src/           Text API, snapshots, versions, search, history, memory, documents/projects
-tests/         Reference-model, filesystem and integration regressions
-benches/       Dependency-free release workloads
-examples/      Background-worker API and Linux peak-RSS fixture
-results/       Raw measurements, environment/source fingerprints and reconciled evidence
+src/                     GUI-independent Rust core (standard library only)
+crates/kedr-workbench/    Editing workflows, workspace/search/task services
+crates/kedr-ui/           Shared theme, chrome, panels, dialogs and viewport editor
+apps/studio/             Native eframe host, folder picker and background queue
+products/                Download/build guides for actual products
 ```
 
-## License
+Future products reuse the whole `kedr-ui` shell rather than copying or merely
+recoloring separate interfaces. Only Studio exists today. Desktop presentation
+uses open-source egui/eframe/rfd; no Electron/webview. The GUI toolkit/OS stack is
+not claimed to have been written from scratch.
 
-MIT. Hosting and CI can move; the library does not require GitHub to run.
+## Core
+
+Persistent AVL text storage, byte/scalar/UTF-16 rank/select, root-sharing undo/redo,
+immutable snapshots, version-guarded edit batches/prepared compaction, bounded
+invalidation journal, streaming search and reachable-memory diagnostics.
+
+```bash
+cargo test --locked -p kedr-core
+cargo test --locked --workspace
+cargo fmt --all --check
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo bench --locked --bench core
+```
+
+[API](docs/API.md) · [Architecture](docs/ARCHITECTURE.md) ·
+[Core 0.3 endurance](docs/HARDENING.md) · [Historical core comparison](PERFORMANCE.md)
+
+Core benchmarks are historical source-fingerprinted evidence, not Studio/IDE
+benchmarks. Gains and regressions are both reported. Default workspace commands
+remain scoped to the core; use `--workspace` for all product crates.

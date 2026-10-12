@@ -15,6 +15,17 @@ use std::{
 };
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action {
+    Project,
+    Replace,
+    FindNext,
+    FindPrevious,
+    NextTab,
+    PreviousTab,
+    SelectAll,
+    Duplicate,
+    DeleteLine,
+    GoToLine,
+    Keybindings,
     OpenProject,
     QuickOpen,
     Commands,
@@ -32,7 +43,18 @@ pub enum Action {
     Settings,
 }
 impl Action {
-    pub const ALL: [Self; 15] = [
+    pub const ALL: [Self; 26] = [
+        Self::Project,
+        Self::Replace,
+        Self::FindNext,
+        Self::FindPrevious,
+        Self::NextTab,
+        Self::PreviousTab,
+        Self::SelectAll,
+        Self::Duplicate,
+        Self::DeleteLine,
+        Self::GoToLine,
+        Self::Keybindings,
         Self::OpenProject,
         Self::QuickOpen,
         Self::Save,
@@ -51,6 +73,17 @@ impl Action {
     ];
     pub fn label(self) -> &'static str {
         match self {
+            Self::Project => "Show project files",
+            Self::Replace => "Replace in file",
+            Self::FindNext => "Find next occurrence",
+            Self::FindPrevious => "Find previous occurrence",
+            Self::NextTab => "Next editor tab",
+            Self::PreviousTab => "Previous editor tab",
+            Self::SelectAll => "Select all",
+            Self::Duplicate => "Duplicate line or selection",
+            Self::DeleteLine => "Delete current line",
+            Self::GoToLine => "Go to line / column",
+            Self::Keybindings => "Keyboard shortcuts",
             Self::OpenProject => "Open workspace",
             Self::QuickOpen => "Go to file",
             Self::Commands => "Command palette",
@@ -68,20 +101,34 @@ impl Action {
             Self::Settings => "Appearance & settings",
         }
     }
-    fn shortcut(self) -> &'static str {
+    pub fn id(self) -> &'static str {
         match self {
-            Self::QuickOpen => "Ctrl P",
-            Self::Commands => "Ctrl Shift P",
-            Self::Save => "Ctrl S",
-            Self::SaveAll => "Ctrl Shift S",
-            Self::Undo => "Ctrl Z",
-            Self::Redo => "Ctrl Shift Z",
-            Self::Find => "Ctrl F",
-            Self::Search => "Ctrl Shift F",
-            Self::CloseTab => "Ctrl W",
-            Self::Check => "F5",
-            Self::Settings => "Ctrl ,",
-            _ => "",
+            Self::Project => "workspace.project",
+            Self::OpenProject => "workspace.open",
+            Self::QuickOpen => "navigation.file",
+            Self::Commands => "commands.search",
+            Self::Save => "file.save",
+            Self::SaveAll => "file.save_all",
+            Self::Undo => "edit.undo",
+            Self::Redo => "edit.redo",
+            Self::Find => "search.find",
+            Self::Search => "search.project",
+            Self::Check => "cargo.check",
+            Self::Test => "cargo.test",
+            Self::CloseTab => "tab.close",
+            Self::Sidebar => "view.sidebar",
+            Self::Output => "view.output",
+            Self::Settings => "settings.appearance",
+            Self::Replace => "search.replace",
+            Self::FindNext => "search.next",
+            Self::FindPrevious => "search.previous",
+            Self::NextTab => "tab.next",
+            Self::PreviousTab => "tab.previous",
+            Self::SelectAll => "edit.select_all",
+            Self::Duplicate => "edit.duplicate",
+            Self::DeleteLine => "edit.delete_line",
+            Self::GoToLine => "navigation.line",
+            Self::Keybindings => "settings.keymap",
         }
     }
 }
@@ -97,6 +144,7 @@ pub enum Effect {
 }
 #[derive(Clone)]
 pub struct Settings {
+    pub keymap: crate::Keymap,
     pub theme: Theme,
     pub font_size: f32,
     pub sidebar_width: f32,
@@ -106,6 +154,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            keymap: crate::Keymap::default(),
             theme: Theme::Dark,
             font_size: 15.,
             sidebar_width: 278.,
@@ -129,6 +178,8 @@ struct NavEntry {
 #[derive(Clone)]
 enum Dialog {
     Settings,
+    Keymap,
+    GoToLine,
     Close(usize),
     Switch(PathBuf),
     Quit,
@@ -159,6 +210,9 @@ pub struct Shell {
     dialog: Option<Dialog>,
     find_open: bool,
     find: String,
+    goto: String,
+    shortcut_filter: String,
+    goto_focus: bool,
     replacement: String,
     find_focus: bool,
     search: String,
@@ -190,6 +244,9 @@ impl Shell {
             dialog: None,
             find_open: false,
             find: String::new(),
+            goto: String::new(),
+            shortcut_filter: String::new(),
+            goto_focus: false,
             replacement: String::new(),
             find_focus: false,
             search: String::new(),
@@ -281,6 +338,58 @@ impl Shell {
     }
     pub fn action(&mut self, a: Action) {
         match a {
+            Action::Keybindings => self.dialog = Some(Dialog::Keymap),
+            Action::GoToLine => {
+                self.goto.clear();
+                self.goto_focus = true;
+                self.dialog = Some(Dialog::GoToLine);
+            }
+            Action::Project => {
+                self.pane = Pane::Files;
+                self.settings.show_sidebar = true;
+            }
+            Action::Replace => {
+                self.find_open = true;
+                self.find_focus = true;
+            }
+            Action::FindNext | Action::FindPrevious => {
+                if self.find.is_empty() {
+                    self.find_open = true;
+                    self.find_focus = true;
+                } else if let Some(t) = self.workspace.as_mut().and_then(Workspace::active_mut) {
+                    let found = if a == Action::FindNext {
+                        t.find_next(&self.find)
+                    } else {
+                        t.find_previous(&self.find)
+                    };
+                    self.status = if found { "Match selected" } else { "No match" }.into();
+                }
+            }
+            Action::NextTab | Action::PreviousTab => {
+                if let Some(w) = &mut self.workspace
+                    && !w.tabs.is_empty()
+                {
+                    let n = w.tabs.len();
+                    w.active = (w.active + if a == Action::NextTab { 1 } else { n - 1 }) % n;
+                    w.tabs[w.active].follow_cursor = true;
+                    self.editor_cache.focus_next = true;
+                }
+            }
+            Action::SelectAll | Action::Duplicate | Action::DeleteLine => {
+                if let Some(t) = self.workspace.as_mut().and_then(Workspace::active_mut) {
+                    let result = match a {
+                        Action::SelectAll => {
+                            t.select_all();
+                            Ok(())
+                        }
+                        Action::Duplicate => t.duplicate(),
+                        _ => t.delete_line(),
+                    };
+                    if let Err(e) = result {
+                        self.error(e);
+                    }
+                }
+            }
             Action::OpenProject => self.effects.push(Effect::PickProject),
             Action::QuickOpen | Action::Commands => {
                 self.palette = Some(PaletteState {
@@ -413,35 +522,24 @@ impl Shell {
             );
         }
     }
+    pub(super) fn shortcut(&self, action: Action) -> &'static str {
+        crate::hint(self.settings.keymap, action, cfg!(target_os = "macos"))
+    }
     fn shortcuts(&mut self, ctx: &Context) {
         if self.dialog.is_some() {
             return;
         }
-        for (mods, key, a) in [
-            (
-                Modifiers::COMMAND | Modifiers::SHIFT,
-                Key::P,
-                Action::Commands,
-            ),
-            (
-                Modifiers::COMMAND | Modifiers::SHIFT,
-                Key::F,
-                Action::Search,
-            ),
-            (
-                Modifiers::COMMAND | Modifiers::SHIFT,
-                Key::S,
-                Action::SaveAll,
-            ),
-            (Modifiers::COMMAND, Key::P, Action::QuickOpen),
-            (Modifiers::COMMAND, Key::S, Action::Save),
-            (Modifiers::COMMAND, Key::F, Action::Find),
-            (Modifiers::COMMAND, Key::W, Action::CloseTab),
-            (Modifiers::COMMAND, Key::Comma, Action::Settings),
-            (Modifiers::NONE, Key::F5, Action::Check),
-        ] {
-            if ctx.input_mut(|i| i.consume_key(mods, key)) {
-                self.action(a);
+        let editor_focused = self
+            .workspace
+            .as_ref()
+            .and_then(Workspace::active)
+            .is_some_and(|t| ctx.memory(|m| m.has_focus(Id::new(("kedr-code", &t.document.path)))));
+        for binding in crate::bindings(self.settings.keymap, cfg!(target_os = "macos")) {
+            if binding.editor_only && (!editor_focused || self.palette.is_some()) {
+                continue;
+            }
+            if ctx.input_mut(|i| i.consume_key(binding.modifiers, binding.key)) {
+                self.action(binding.action);
             }
         }
         if self.palette.is_some() && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))

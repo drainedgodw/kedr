@@ -5,6 +5,7 @@ from pathlib import Path
 p=argparse.ArgumentParser();p.add_argument('--binary',type=Path,required=True);p.add_argument('--workspace',type=Path,default=Path('tests/fixtures/studio'));p.add_argument('--out',type=Path,default=Path('ui-captures'));a=p.parse_args()
 a.out.mkdir(parents=True,exist_ok=True)
 scenes=[('editor-dark','editor',False,'1440x900',True),('editor-light','editor',True,'1440x900',True),('compact','editor',False,'900x640',True),('welcome','welcome',False,'1200x800',False),('palette','palette',False,'1440x900',True),('commands','commands',False,'1440x900',True),('settings','settings',False,'1440x900',True),('search','search',False,'1440x900',True),('unsaved','unsaved',False,'1440x900',True),('trust','trust',False,'1440x900',True),('error','error',False,'1440x900',True)]
+scenes += [("keymap","keymap",False,"1440x900",True),("goto","goto",False,"1440x900",True),("find","find",False,"1440x900",True),("compact-keymap","keymap",False,"900x640",True),("compact-find","find",False,"900x640",True)]
 files=[]
 for name,state,light,size,project in scenes:
     png=a.out/(name+'.png');cmd=[str(a.binary.resolve())]

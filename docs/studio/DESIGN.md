@@ -1,12 +1,13 @@
 # Shared Kedr interface contract
 
 The interface is a reusable shell, not a screenshot copied into each application.
-Every future product uses `kedr-ui::Shell` and the same theme tokens/components.
+Desktop products reuse `kedr-ui::Shell` where appropriate. Service/web hosts
+require the same token/interaction contract with their own actual backend and host.
 
 ## Visual language
 
 Midnight and Daylight: quiet neutral surfaces, one blue accent, restrained borders,
-8-pixel controls, 12-pixel dialogs, 14-pixel interface text and 15-pixel code by
+8-pixel control corners, 12-pixel dialogs, 14-pixel interface text and 15-pixel code by
 default. The spacing scale is 4/8/12/16/24/32/48/64. Icons are native vector strokes,
 not missing-font pictograms. Success/warning colors retain textual labels.
 

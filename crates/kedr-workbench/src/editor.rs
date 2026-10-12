@@ -323,6 +323,79 @@ impl EditorTab {
         self.cached_dirty = true;
         Ok(())
     }
+    pub fn goto(&mut self, line: usize, column: usize) -> Result<(), String> {
+        if line == 0 || column == 0 {
+            return Err("Line and column start at 1".into());
+        }
+        let at = self
+            .document
+            .buffer
+            .position_to_byte(line - 1, column - 1)
+            .map_err(|_| "Line or Unicode-scalar column is outside this document".to_string())?;
+        self.set_cursor(at, false);
+        Ok(())
+    }
+    pub fn duplicate(&mut self) -> Result<(), String> {
+        if self.cursor != self.anchor {
+            let range = self.selection();
+            let text = self.selected_text();
+            self.set_cursor(range.end, false);
+            self.insert(&text)
+        } else {
+            let old = self.cursor;
+            let range = self.line_bounds(self.position().0);
+            if range.end < self.document.buffer.len_bytes() {
+                let text = self
+                    .document
+                    .buffer
+                    .slice(range.start..range.end + 1)
+                    .map_err(|e| e.to_string())?;
+                self.set_cursor(range.start, false);
+                self.insert(&text)?;
+                self.set_cursor(old + text.len(), false);
+            } else {
+                let text = self
+                    .document
+                    .buffer
+                    .slice(range.clone())
+                    .map_err(|e| e.to_string())?;
+                let value = format!("{}{}", self.newline, text);
+                self.set_cursor(range.end, false);
+                self.insert(&value)?;
+                self.set_cursor(range.end + self.newline.len() + old - range.start, false);
+            }
+            Ok(())
+        }
+    }
+    pub fn delete_line(&mut self) -> Result<(), String> {
+        let range = self.line_bounds(self.position().0);
+        self.anchor = range.start;
+        self.cursor = (range.end + usize::from(range.end < self.document.buffer.len_bytes()))
+            .min(self.document.buffer.len_bytes());
+        self.insert("")
+    }
+    pub fn find_previous(&mut self, needle: &str) -> bool {
+        if needle.is_empty() {
+            return false;
+        }
+        let before = self.selection().start;
+        let mut previous = None;
+        let mut last = None;
+        for r in self.document.buffer.find_iter(needle) {
+            if r.start < before {
+                previous = Some(r.clone());
+            }
+            last = Some(r);
+        }
+        if let Some(r) = previous.or(last) {
+            self.anchor = r.start;
+            self.cursor = r.end;
+            self.follow_cursor = true;
+            true
+        } else {
+            false
+        }
+    }
     pub fn find_next(&mut self, needle: &str) -> bool {
         if needle.is_empty() {
             return false;

@@ -225,3 +225,112 @@ fn huge_line_preview_keeps_full_content() {
         100000
     );
 }
+#[test]
+fn jetbrains_file_palette_and_delete_line_dispatch_are_real() {
+    let f = Fixture::new("one\ntwo");
+    let mut s = f.shell();
+    let c = Context::default();
+    s.editor_cache.focus_next = true;
+    frame(&c, &mut s, vec![]);
+    frame(&c, &mut s, vec![key(Key::Y, Modifiers::COMMAND)]);
+    assert_eq!(
+        s.workspace
+            .as_ref()
+            .unwrap()
+            .active()
+            .unwrap()
+            .document
+            .buffer
+            .to_text(),
+        "two"
+    );
+    frame(
+        &c,
+        &mut s,
+        vec![key(Key::N, Modifiers::COMMAND | Modifiers::SHIFT)],
+    );
+    frame(&c, &mut s, vec![Event::Text("main".into())]);
+    assert_eq!(
+        s.workspace
+            .as_ref()
+            .unwrap()
+            .active()
+            .unwrap()
+            .document
+            .buffer
+            .to_text(),
+        "two"
+    );
+}
+#[test]
+fn classic_profile_can_be_selected_without_changing_editor_actions() {
+    let f = Fixture::new("a");
+    let mut s = f.shell();
+    let c = Context::default();
+    s.settings.keymap = kedr_ui::Keymap::Kedr;
+    frame(&c, &mut s, vec![]);
+    frame(&c, &mut s, vec![key(Key::P, Modifiers::COMMAND)]);
+    frame(&c, &mut s, vec![Event::Text("main".into())]);
+    assert_eq!(
+        s.workspace
+            .as_ref()
+            .unwrap()
+            .active()
+            .unwrap()
+            .document
+            .buffer
+            .to_text(),
+        "a"
+    );
+}
+#[test]
+fn action_ids_are_unique_and_keymap_dialog_is_isolated() {
+    for (i, a) in Action::ALL.iter().enumerate() {
+        assert!(!Action::ALL[..i].iter().any(|b| a.id() == b.id()));
+    }
+    let f = Fixture::new("a");
+    let mut s = f.shell();
+    let c = Context::default();
+    frame(&c, &mut s, vec![]);
+    s.action(Action::Keybindings);
+    frame(&c, &mut s, vec![]);
+    frame(&c, &mut s, vec![Event::Text("search".into())]);
+    assert_eq!(
+        s.workspace
+            .as_ref()
+            .unwrap()
+            .active()
+            .unwrap()
+            .document
+            .buffer
+            .to_text(),
+        "a"
+    );
+}
+#[test]
+fn unsupported_modified_edit_keys_do_not_fake_ide_actions() {
+    let f = Fixture::new("a");
+    let mut s = f.shell();
+    let c = Context::default();
+    s.editor_cache.focus_next = true;
+    frame(&c, &mut s, vec![]);
+    frame(
+        &c,
+        &mut s,
+        vec![
+            key(Key::Enter, Modifiers::ALT),
+            key(Key::Delete, Modifiers::COMMAND),
+        ],
+    );
+    assert_eq!(
+        s.workspace
+            .as_ref()
+            .unwrap()
+            .active()
+            .unwrap()
+            .document
+            .buffer
+            .to_text(),
+        "a"
+    );
+}

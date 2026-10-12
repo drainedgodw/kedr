@@ -1,9 +1,11 @@
 //! One shared visual language and workbench shell for the Kedr product family.
 mod editor;
+mod keymap;
+pub use keymap::{Binding, Keymap, bindings, hint};
 mod shell;
 mod theme;
 pub use editor::{EditorCache, editor};
-use egui::{Color32, FontId, Sense, Stroke, Ui, Vec2};
+use egui::{Color32, Sense, Stroke, Ui, Vec2};
 pub use shell::{Action, Effect, Settings, Shell};
 pub use theme::{Palette, Theme, apply_theme};
 #[derive(Clone, Copy)]
@@ -101,11 +103,20 @@ pub fn icon_button(
 pub fn wordmark(ui: &mut Ui, p: Palette) {
     let (r, _) = ui.allocate_exact_size(Vec2::new(32., 32.), Sense::hover());
     ui.painter().rect_filled(r, 8., p.accent);
-    ui.painter().text(
-        r.center(),
-        egui::Align2::CENTER_CENTER,
-        "K",
-        FontId::proportional(21.),
+    let point = |x: f32, y: f32| r.min + Vec2::new(x, y);
+    ui.painter().add(egui::Shape::convex_polygon(
+        vec![point(16., 4.), point(8., 13.), point(24., 13.)],
+        p.canvas,
+        Stroke::NONE,
+    ));
+    ui.painter().add(egui::Shape::convex_polygon(
+        vec![point(16., 10.), point(5., 22.), point(27., 22.)],
+        p.canvas,
+        Stroke::NONE,
+    ));
+    ui.painter().rect_filled(
+        egui::Rect::from_min_max(point(14., 20.), point(18., 28.)),
+        0.,
         p.canvas,
     );
     ui.label(egui::RichText::new("KEDR").size(18.).strong().color(p.text));

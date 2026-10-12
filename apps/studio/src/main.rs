@@ -41,7 +41,7 @@ impl Options {
                 }
                 "--help" => {
                     println!(
-                        "Kedr Studio [workspace]\n--capture FILE --state editor|welcome|palette|commands|settings|search|unsaved|trust|error\n--light --size WIDTHxHEIGHT\nCapture mode never saves preferences or runs tasks."
+                        "CodeCedar — Kedr [workspace]\n--capture FILE --state editor|welcome|palette|commands|settings|search|unsaved|trust|error\n--light --size WIDTHxHEIGHT\nCapture mode never saves preferences or runs tasks."
                     );
                     std::process::exit(0)
                 }
@@ -78,7 +78,7 @@ impl Studio {
             settings.theme = Theme::Light;
         }
         apply_theme(&cc.egui_ctx, settings.theme);
-        let mut shell = Shell::new("Kedr Studio", settings);
+        let mut shell = Shell::new("CodeCedar — Kedr", settings);
         shell.recent = prefs
             .recent
             .into_iter()
@@ -136,7 +136,7 @@ impl Studio {
                         self.shell.recent.insert(0, root);
                         self.shell.recent.truncate(8);
                         ctx.send_viewport_cmd(ViewportCommand::Title(format!(
-                            "{} — Kedr Studio",
+                            "{} — CodeCedar — Kedr",
                             self.shell.workspace.as_ref().unwrap().name()
                         )));
                         if let Some(path) = initial {
@@ -165,6 +165,7 @@ impl Studio {
     }
     fn preferences(&self) -> Preferences {
         Preferences {
+            keymap: self.shell.settings.keymap.id().into(),
             theme: if self.shell.settings.theme == Theme::Light {
                 "light"
             } else {
@@ -326,9 +327,9 @@ fn main() -> eframe::Result {
     let viewport = egui::ViewportBuilder::default()
         .with_inner_size(options.size.unwrap_or([1440., 900.]))
         .with_min_inner_size([760., 520.])
-        .with_title("Kedr Studio");
+        .with_title("CodeCedar — Kedr");
     eframe::run_native(
-        "Kedr Studio",
+        "CodeCedar — Kedr",
         eframe::NativeOptions {
             viewport,
             renderer: eframe::Renderer::Glow,

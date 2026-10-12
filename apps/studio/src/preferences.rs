@@ -9,6 +9,7 @@ use std::{
 #[serde(default)]
 pub struct Preferences {
     pub theme: String,
+    pub keymap: String,
     pub font_size: f32,
     pub recent: Vec<PathBuf>,
 }
@@ -26,6 +27,11 @@ impl Preferences {
     }
     pub fn settings(&self) -> Settings {
         Settings {
+            keymap: if self.keymap == "kedr" {
+                kedr_ui::Keymap::Kedr
+            } else {
+                kedr_ui::Keymap::JetBrains
+            },
             theme: if self.theme == "light" {
                 Theme::Light
             } else {

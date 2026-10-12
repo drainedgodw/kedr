@@ -1,0 +1,534 @@
+{
+  "brand": "Kedr",
+  "policy": "Names are Kedr originals. Comparisons describe category, not parity or affiliation. Only CodeCedar is a preview.",
+  "products": [
+    {
+      "slug": "codecedar",
+      "name": "CodeCedar",
+      "monogram": "CC",
+      "kind": "Workbench",
+      "reference": "Fleet",
+      "purpose": "Native local editor and shared desktop foundation",
+      "status": "preview",
+      "logo": "assets/brand/codecedar.svg",
+      "guide": "products/codecedar.md",
+      "targets": [
+        "Trustworthy edit/save/recovery",
+        "Project navigation and keyboard workflows",
+        "Incremental rendering and measured responsiveness"
+      ]
+    },
+    {
+      "slug": "ideacedar",
+      "name": "IdeaCedar",
+      "monogram": "IC",
+      "kind": "IDE",
+      "reference": "IntelliJ IDEA",
+      "purpose": "Java, Kotlin and JVM development",
+      "status": "planned",
+      "logo": "assets/brand/ideacedar.svg",
+      "guide": "products/ideacedar.md",
+      "targets": [
+        "JVM project import and build models",
+        "Semantic completion, navigation and refactoring",
+        "JVM debugging, tests and framework tooling"
+      ]
+    },
+    {
+      "slug": "pycedar",
+      "name": "PyCedar",
+      "monogram": "PY",
+      "kind": "IDE",
+      "reference": "PyCharm",
+      "purpose": "Python development",
+      "status": "planned",
+      "logo": "assets/brand/pycedar.svg",
+      "guide": "products/pycedar.md",
+      "targets": [
+        "Interpreter, virtual environment and packaging management",
+        "Python analysis, refactoring and tests",
+        "Debugging, notebooks and web framework workflows"
+      ]
+    },
+    {
+      "slug": "webcedar",
+      "name": "WebCedar",
+      "monogram": "WB",
+      "kind": "IDE",
+      "reference": "WebStorm",
+      "purpose": "JavaScript and TypeScript development",
+      "status": "planned",
+      "logo": "assets/brand/webcedar.svg",
+      "guide": "products/webcedar.md",
+      "targets": [
+        "JS/TS semantic services and frameworks",
+        "Node/package manager/test runner integration",
+        "Browser and Node debugging"
+      ]
+    },
+    {
+      "slug": "phpcedar",
+      "name": "PhpCedar",
+      "monogram": "PH",
+      "kind": "IDE",
+      "reference": "PhpStorm",
+      "purpose": "PHP development",
+      "status": "planned",
+      "logo": "assets/brand/phpcedar.svg",
+      "guide": "products/phpcedar.md",
+      "targets": [
+        "PHP/Composer project model",
+        "Semantic tooling and framework integration",
+        "PHP tests and debugging"
+      ]
+    },
+    {
+      "slug": "rubycedar",
+      "name": "RubyCedar",
+      "monogram": "RB",
+      "kind": "IDE",
+      "reference": "RubyMine",
+      "purpose": "Ruby and Rails development",
+      "status": "planned",
+      "logo": "assets/brand/rubycedar.svg",
+      "guide": "products/rubycedar.md",
+      "targets": [
+        "Ruby environments and dependency management",
+        "Ruby/Rails semantic tooling",
+        "Tests and debugger integration"
+      ]
+    },
+    {
+      "slug": "gocedar",
+      "name": "GoCedar",
+      "monogram": "GO",
+      "kind": "IDE",
+      "reference": "GoLand",
+      "purpose": "Go development",
+      "status": "planned",
+      "logo": "assets/brand/gocedar.svg",
+      "guide": "products/gocedar.md",
+      "targets": [
+        "Go modules and workspace model",
+        "Semantic tooling and refactoring",
+        "Tests, debugging and profiling integration"
+      ]
+    },
+    {
+      "slug": "cppcedar",
+      "name": "CppCedar",
+      "monogram": "CP",
+      "kind": "IDE",
+      "reference": "CLion",
+      "purpose": "C and C++ development",
+      "status": "planned",
+      "logo": "assets/brand/cppcedar.svg",
+      "guide": "products/cppcedar.md",
+      "targets": [
+        "CMake/toolchain and compilation database support",
+        "C/C++ semantic services and refactoring",
+        "Native debugging, sanitizers and test runners"
+      ]
+    },
+    {
+      "slug": "rustcedar",
+      "name": "RustCedar",
+      "monogram": "RS",
+      "kind": "IDE",
+      "reference": "RustRover",
+      "purpose": "Rust development",
+      "status": "planned",
+      "logo": "assets/brand/rustcedar.svg",
+      "guide": "products/rustcedar.md",
+      "targets": [
+        "Cargo/rust-analyzer project integration",
+        "Versioned diagnostics, completion and refactoring",
+        "Debugging, tests and profiling integration"
+      ]
+    },
+    {
+      "slug": "dotcedar",
+      "name": "DotCedar",
+      "monogram": "DT",
+      "kind": "IDE",
+      "reference": "Rider",
+      "purpose": ".NET and game development",
+      "status": "planned",
+      "logo": "assets/brand/dotcedar.svg",
+      "guide": "products/dotcedar.md",
+      "targets": [
+        "Solution/MSBuild/NuGet project model",
+        "C#/F# semantic services and refactoring",
+        ".NET debugging and game engine workflows"
+      ]
+    },
+    {
+      "slug": "datacedar",
+      "name": "DataCedar",
+      "monogram": "DB",
+      "kind": "Data",
+      "reference": "DataGrip",
+      "purpose": "Database development",
+      "status": "planned",
+      "logo": "assets/brand/datacedar.svg",
+      "guide": "products/datacedar.md",
+      "targets": [
+        "Permission-aware database drivers and connection management",
+        "SQL completion and schema navigation",
+        "Query execution, result editing and safe transactions"
+      ]
+    },
+    {
+      "slug": "metacedar",
+      "name": "MetaCedar",
+      "monogram": "MT",
+      "kind": "Language workbench",
+      "reference": "MPS",
+      "purpose": "Domain-specific language workbench",
+      "status": "planned",
+      "logo": "assets/brand/metacedar.svg",
+      "guide": "products/metacedar.md",
+      "targets": [
+        "Language definition and projectional editing",
+        "Type systems and generation",
+        "Language testing and migration tooling"
+      ]
+    },
+    {
+      "slug": "boxcedar",
+      "name": "BoxCedar",
+      "monogram": "BX",
+      "kind": "Distribution",
+      "reference": "Toolbox App",
+      "purpose": "Product installation and update manager",
+      "status": "planned",
+      "logo": "assets/brand/boxcedar.svg",
+      "guide": "products/boxcedar.md",
+      "targets": [
+        "Verified packages and channel management",
+        "Installation, removal and rollback",
+        "Local project launch and version management"
+      ]
+    },
+    {
+      "slug": "sharpcedar",
+      "name": "SharpCedar",
+      "monogram": "SH",
+      "kind": "Extension",
+      "reference": "ReSharper",
+      "purpose": "Visual Studio .NET tooling",
+      "status": "planned",
+      "logo": "assets/brand/sharpcedar.svg",
+      "guide": "products/sharpcedar.md",
+      "targets": [
+        "Permission-scoped Visual Studio integration",
+        "C# inspections and refactoring",
+        "Solution navigation and test workflows"
+      ]
+    },
+    {
+      "slug": "sharpcppcedar",
+      "name": "SharpCppCedar",
+      "monogram": "SC",
+      "kind": "Extension",
+      "reference": "ReSharper C++",
+      "purpose": "Visual Studio C++ tooling",
+      "status": "planned",
+      "logo": "assets/brand/sharpcppcedar.svg",
+      "guide": "products/sharpcppcedar.md",
+      "targets": [
+        "Visual Studio C++ project integration",
+        "C++ analysis and refactoring",
+        "Native tests and navigation"
+      ]
+    },
+    {
+      "slug": "peekcedar",
+      "name": "PeekCedar",
+      "monogram": "PK",
+      "kind": "Inspection",
+      "reference": "dotPeek",
+      "purpose": ".NET assembly inspection",
+      "status": "planned",
+      "logo": "assets/brand/peekcedar.svg",
+      "guide": "products/peekcedar.md",
+      "targets": [
+        "Assembly metadata browsing",
+        "Legal/permission-aware decompilation workflows",
+        "Source/symbol navigation"
+      ]
+    },
+    {
+      "slug": "tracecedar",
+      "name": "TraceCedar",
+      "monogram": "TR",
+      "kind": "Profiler",
+      "reference": "dotTrace",
+      "purpose": "Execution performance profiling",
+      "status": "planned",
+      "logo": "assets/brand/tracecedar.svg",
+      "guide": "products/tracecedar.md",
+      "targets": [
+        "Runtime sampling and tracing",
+        "Timeline and call tree exploration",
+        "Reproducible profile comparison"
+      ]
+    },
+    {
+      "slug": "memorycedar",
+      "name": "MemoryCedar",
+      "monogram": "MM",
+      "kind": "Profiler",
+      "reference": "dotMemory",
+      "purpose": "Memory profiling",
+      "status": "planned",
+      "logo": "assets/brand/memorycedar.svg",
+      "guide": "products/memorycedar.md",
+      "targets": [
+        "Managed runtime heap snapshots",
+        "Allocation/retention analysis",
+        "Leak investigation and profile comparison"
+      ]
+    },
+    {
+      "slug": "covercedar",
+      "name": "CoverCedar",
+      "monogram": "CV",
+      "kind": "Testing",
+      "reference": "dotCover",
+      "purpose": "Coverage and test investigation",
+      "status": "planned",
+      "logo": "assets/brand/covercedar.svg",
+      "guide": "products/covercedar.md",
+      "targets": [
+        "Runtime coverage collection",
+        "Test runner integration",
+        "Branch/statement coverage and comparison"
+      ]
+    },
+    {
+      "slug": "trackcedar",
+      "name": "TrackCedar",
+      "monogram": "TK",
+      "kind": "Team service",
+      "reference": "YouTrack",
+      "purpose": "Issue and project management",
+      "status": "planned",
+      "logo": "assets/brand/trackcedar.svg",
+      "guide": "products/trackcedar.md",
+      "targets": [
+        "Issues, permissions and workflow engine",
+        "Boards, search and reporting",
+        "Audit trails and import/export"
+      ]
+    },
+    {
+      "slug": "buildcedar",
+      "name": "BuildCedar",
+      "monogram": "BL",
+      "kind": "Team service",
+      "reference": "TeamCity",
+      "purpose": "Continuous integration service",
+      "status": "planned",
+      "logo": "assets/brand/buildcedar.svg",
+      "guide": "products/buildcedar.md",
+      "targets": [
+        "Build agents, queues and isolation",
+        "Pipeline configuration and secrets boundaries",
+        "Artifacts, logs and build history"
+      ]
+    },
+    {
+      "slug": "hubcedar",
+      "name": "HubCedar",
+      "monogram": "HB",
+      "kind": "Team service",
+      "reference": "Hub",
+      "purpose": "Shared identity and service connections",
+      "status": "planned",
+      "logo": "assets/brand/hubcedar.svg",
+      "guide": "products/hubcedar.md",
+      "targets": [
+        "Identity and authentication boundaries",
+        "Role/permission administration",
+        "Audited service integrations"
+      ]
+    },
+    {
+      "slug": "labcedar",
+      "name": "LabCedar",
+      "monogram": "LB",
+      "kind": "Data service",
+      "reference": "Datalore",
+      "purpose": "Collaborative notebooks and data work",
+      "status": "planned",
+      "logo": "assets/brand/labcedar.svg",
+      "guide": "products/labcedar.md",
+      "targets": [
+        "Reproducible notebook execution",
+        "Data access and compute isolation",
+        "Collaboration and shareable results"
+      ]
+    },
+    {
+      "slug": "qualitycedar",
+      "name": "QualityCedar",
+      "monogram": "QL",
+      "kind": "Team service",
+      "reference": "Qodana",
+      "purpose": "Code quality platform",
+      "status": "planned",
+      "logo": "assets/brand/qualitycedar.svg",
+      "guide": "products/qualitycedar.md",
+      "targets": [
+        "Static analysis pipelines",
+        "Baselines, policy gates and reports",
+        "CI integration and findings navigation"
+      ]
+    },
+    {
+      "slug": "paircedar",
+      "name": "PairCedar",
+      "monogram": "PR",
+      "kind": "Collaboration",
+      "reference": "Code With Me",
+      "purpose": "Collaborative development",
+      "status": "planned",
+      "logo": "assets/brand/paircedar.svg",
+      "guide": "products/paircedar.md",
+      "targets": [
+        "Explicitly authorized shared sessions",
+        "Editor synchronization and permission controls",
+        "Connection recovery and collaboration security"
+      ]
+    },
+    {
+      "slug": "gatecedar",
+      "name": "GateCedar",
+      "monogram": "GT",
+      "kind": "Remote development",
+      "reference": "Gateway",
+      "purpose": "Remote workspace entry point",
+      "status": "planned",
+      "logo": "assets/brand/gatecedar.svg",
+      "guide": "products/gatecedar.md",
+      "targets": [
+        "Secure remote host connections",
+        "Workspace discovery and lifecycle",
+        "Version/protocol compatibility checks"
+      ]
+    },
+    {
+      "slug": "cloudcedar",
+      "name": "CloudCedar",
+      "monogram": "CL",
+      "kind": "Remote development",
+      "reference": "CodeCanvas",
+      "purpose": "Managed development environments",
+      "status": "planned",
+      "logo": "assets/brand/cloudcedar.svg",
+      "guide": "products/cloudcedar.md",
+      "targets": [
+        "Isolated environment provisioning",
+        "Resource/policy controls",
+        "Workspace lifecycle and auditability"
+      ]
+    },
+    {
+      "slug": "learncedar",
+      "name": "LearnCedar",
+      "monogram": "LN",
+      "kind": "Learning",
+      "reference": "JetBrains Academy",
+      "purpose": "Educational development tooling",
+      "status": "planned",
+      "logo": "assets/brand/learncedar.svg",
+      "guide": "products/learncedar.md",
+      "targets": [
+        "Courses and exercise workflows",
+        "Local test-based feedback",
+        "Progress and curriculum authoring"
+      ]
+    },
+    {
+      "slug": "agentcedar",
+      "name": "AgentCedar",
+      "monogram": "AG",
+      "kind": "AI",
+      "reference": "Junie",
+      "purpose": "User-controlled coding agent",
+      "status": "planned",
+      "logo": "assets/brand/agentcedar.svg",
+      "guide": "products/agentcedar.md",
+      "targets": [
+        "Explicit capabilities and execution permissions",
+        "Reviewable plans, patches and test evidence",
+        "Provider abstraction and cancellation"
+      ]
+    },
+    {
+      "slug": "aicedar",
+      "name": "AICedar",
+      "monogram": "AI",
+      "kind": "AI",
+      "reference": "JetBrains AI",
+      "purpose": "Optional AI development assistance",
+      "status": "planned",
+      "logo": "assets/brand/aicedar.svg",
+      "guide": "products/aicedar.md",
+      "targets": [
+        "Local/remote provider choice",
+        "Explicit data-sharing and context limits",
+        "Consent-based assistance without cloud dependency"
+      ]
+    },
+    {
+      "slug": "aircedar",
+      "name": "AirCedar",
+      "monogram": "AR",
+      "kind": "AI workflow",
+      "reference": "JetBrains Air",
+      "purpose": "Agent workflow coordination",
+      "status": "planned",
+      "logo": "assets/brand/aircedar.svg",
+      "guide": "products/aircedar.md",
+      "targets": [
+        "Audited agent sessions and workspace isolation",
+        "Provider/protocol interoperability",
+        "Review, cancellation and governance"
+      ]
+    },
+    {
+      "slug": "marketcedar",
+      "name": "MarketCedar",
+      "monogram": "MK",
+      "kind": "Distribution",
+      "reference": "Marketplace",
+      "purpose": "Extension distribution and discovery",
+      "status": "planned",
+      "logo": "assets/brand/marketcedar.svg",
+      "guide": "products/marketcedar.md",
+      "targets": [
+        "Signed manifests and permission declarations",
+        "Compatibility/dependency validation",
+        "Review, updates and revocation"
+      ]
+    },
+    {
+      "slug": "mattercedar",
+      "name": "MatterCedar",
+      "monogram": "MA",
+      "kind": "Team service",
+      "reference": "Matter",
+      "purpose": "Reserved team-tool product slot",
+      "status": "planned",
+      "logo": "assets/brand/mattercedar.svg",
+      "guide": "products/mattercedar.md",
+      "targets": [
+        "Research the product scope before implementation",
+        "Document data boundaries and service contracts",
+        "Approve a testable specification before feature claims"
+      ]
+    }
+  ]
+}

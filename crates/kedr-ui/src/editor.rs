@@ -213,10 +213,12 @@ fn input(tab: &mut EditorTab, cache: &mut EditorCache, ui: &Ui) -> Option<String
                         }
                         Key::Z if modifiers.command => tab.undo(modifiers.shift),
                         Key::Y if modifiers.command => tab.undo(true),
-                        Key::Backspace => tab.backspace(),
-                        Key::Delete => tab.delete(),
-                        Key::Enter if !cache.composing => tab.enter(),
-                        Key::Tab if !cache.composing => {
+                        Key::Backspace if !modifiers.command && !modifiers.alt => tab.backspace(),
+                        Key::Delete if !modifiers.command && !modifiers.alt => tab.delete(),
+                        Key::Enter if !cache.composing && !modifiers.command && !modifiers.alt => {
+                            tab.enter()
+                        }
+                        Key::Tab if !cache.composing && !modifiers.command && !modifiers.alt => {
                             if tab.cursor != tab.anchor || modifiers.shift {
                                 tab.indent(modifiers.shift)
                             } else {
@@ -289,8 +291,10 @@ pub fn editor(
             .values()
             .map(|l| l.galley.size().x + gutter + padding * 2.)
             .fold(ui.available_width(), f32::max);
-        let (rect, response) = ui.allocate_exact_size(
-            Vec2::new(width, rows.len() as f32 * height),
+        let (_, rect) = ui.allocate_space(Vec2::new(width, rows.len() as f32 * height));
+        let response = ui.interact(
+            rect,
+            id,
             if enabled {
                 Sense::click_and_drag()
             } else {

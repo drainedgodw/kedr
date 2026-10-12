@@ -236,7 +236,8 @@ impl Shell {
             });
     }
     pub(super) fn find_bar(&mut self, ui: &mut egui::Ui, p: Palette) {
-        let (mut next, mut all) = (false, false);
+        let (mut next, mut previous, mut all) = (false, false, false);
+        let compact = ui.available_width() < 600.;
         egui::Frame::new()
             .fill(p.surface)
             .inner_margin(12)
@@ -246,19 +247,26 @@ impl Shell {
                         singleline(&mut self.find)
                             .hint_text("Find in current file")
                             .char_limit(4096)
-                            .desired_width(190.),
+                            .desired_width(if compact { 120. } else { 190. }),
                     );
                     if self.find_focus {
                         r.request_focus();
                         self.find_focus = false;
                     }
                     next |= r.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter));
-                    next |= ui.button("Next").clicked();
+                    previous |= ui
+                        .button("Prev")
+                        .on_hover_text(self.shortcut(Action::FindPrevious))
+                        .clicked();
+                    next |= ui
+                        .button("Next")
+                        .on_hover_text(self.shortcut(Action::FindNext))
+                        .clicked();
                     ui.add(
                         singleline(&mut self.replacement)
                             .hint_text("Replace with")
                             .char_limit(4096)
-                            .desired_width(150.),
+                            .desired_width(if compact { 90. } else { 150. }),
                     );
                     all |= ui.button("Replace all").clicked();
                     if icon_button(ui, Icon::Close, "Close find bar · Escape", false, p).clicked()
@@ -271,6 +279,14 @@ impl Shell {
         if let Some(tab) = self.workspace.as_mut().and_then(Workspace::active_mut) {
             if next {
                 self.status = if tab.find_next(&self.find) {
+                    "Match selected"
+                } else {
+                    "No match"
+                }
+                .into();
+            }
+            if previous {
+                self.status = if tab.find_previous(&self.find) {
                     "Match selected"
                 } else {
                     "No match"

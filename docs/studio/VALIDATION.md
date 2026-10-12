@@ -2,8 +2,9 @@
 
 ## Automated checks
 
-The workspace contains the existing 47 core tests, 14 workbench workflow tests and
-8 headless egui interaction tests: 69 total. These cover Unicode editing, selection,
+The initial desktop preview contained 47 core tests, 14 workbench workflow tests
+and 8 headless egui interaction tests: 69 total. The current revision has 79, as
+recorded below. The initial tests cover Unicode editing, selection,
 undo, desired-column navigation, CRLF/indentation, replace-all transactions, dirty
 close guards, external-save refusal, workspace boundaries, fuzzy paths, cancellable
 saved-file search, no-op dirty state, the tab limit, manifest checks and a real Cargo task against
@@ -71,3 +72,34 @@ release build, but native capture failed before producing screenshots because
 `libxkbcommon-x11-0`; the Arch guide also lists `libxkbcommon-x11`. This correction
 is not itself evidence that a subsequent run succeeded. Physical Windows/macOS
 interaction acceptance remains unperformed.
+
+## Observed corrected baseline CI
+
+Run [38293446683](https://github.com/drainedgodw/kedr/actions/runs/38293446683),
+commit `0488a325820692dbebc7d3a9e428ec5ad0bd923b`, completed successfully after
+the Linux dependency fix. This establishes the preceding Studio baseline, not
+remote validation of the subsequent catalog/keymap changes.
+
+## CodeCedar catalog and keyboard revision
+
+Local workspace tests now total 79: 47 core, 18 workbench, 2 keymap registry and
+12 egui interaction tests. They include Unicode/CRLF duplicate and line deletion,
+1-based coordinate bounds, previous-find wrap, chord/ID uniqueness, compatible
+Ctrl+Y dispatch, classic-profile palette isolation and unsupported modified edit
+keys not mutating the document. Minimum-supported Rust and physical keyboards
+are still separate validation tasks.
+
+The revised native capture script generates 16 states, adding keyboard settings,
+line navigation, find/replace and compact keyboard/find layouts. Visual inspection
+is recorded separately from generation. All 34 original logo marks were inspected
+individually as 384×320 identity frames; product titles, monograms and status
+labels were readable with no overflow. Catalog links/statuses/SVG titles and
+generated keyboard docs are mechanically checked by scripts/check_catalog.py.
+
+Full feature/keymap parity is not asserted; see docs/suite/PARITY.md.
+
+All sixteen revised native states passed individual layout/readability review at
+the captured sizes. Compact keymap height and find/replace layout were corrected
+and reinspected; previous/next controls now fit in one row at 900×640. The line
+navigation action has a 44×44 target. This does not establish universal UI polish,
+physical-platform acceptance or full accessibility compliance.

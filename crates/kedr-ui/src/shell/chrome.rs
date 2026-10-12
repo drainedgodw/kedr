@@ -15,15 +15,29 @@ impl Shell {
                             Action::SaveAll,
                             Action::CloseTab,
                         ] {
-                            if ui.button(a.label()).clicked() {
+                            if ui
+                                .button(format!("{}    {}", a.label(), self.shortcut(a)))
+                                .clicked()
+                            {
                                 self.action(a);
                                 ui.close();
                             }
                         }
                     });
                     ui.menu_button("Edit", |ui| {
-                        for a in [Action::Undo, Action::Redo, Action::Find, Action::Search] {
-                            if ui.button(a.label()).clicked() {
+                        for a in [
+                            Action::Undo,
+                            Action::Redo,
+                            Action::Find,
+                            Action::Replace,
+                            Action::Search,
+                            Action::GoToLine,
+                            Action::Keybindings,
+                        ] {
+                            if ui
+                                .button(format!("{}    {}", a.label(), self.shortcut(a)))
+                                .clicked()
+                            {
                                 self.action(a);
                                 ui.close();
                             }
@@ -33,7 +47,7 @@ impl Shell {
                     let name = self
                         .workspace
                         .as_ref()
-                        .map_or("Studio".into(), Workspace::name);
+                        .map_or("CodeCedar".into(), Workspace::name);
                     let short: String = name.chars().take(24).collect();
                     ui.label(RichText::new(short).color(p.muted))
                         .on_hover_text(name);
@@ -48,17 +62,20 @@ impl Shell {
                                     .min_size(Vec2::new(88., 44.))
                                     .fill(p.accent_soft),
                             )
-                            .on_hover_text("Cargo check · F5 · requires explicit trust")
+                            .on_hover_text(format!(
+                                "Cargo check · {} · requires explicit trust",
+                                self.shortcut(Action::Check)
+                            ))
                             .clicked()
                         {
                             self.action(Action::Check);
                         }
                         let wide = ctx.content_rect().width() > 1150.;
-                        let label = if wide {
-                            "Search files or commands     Ctrl P"
-                        } else {
-                            "Go to file   Ctrl P"
-                        };
+                        let label = format!(
+                            "{} · {}",
+                            if wide { "Go to file" } else { "Files" },
+                            self.shortcut(Action::QuickOpen)
+                        );
                         if ui
                             .add(
                                 egui::Button::new(RichText::new(label).color(p.muted))
@@ -131,7 +148,7 @@ impl Shell {
                 if icon_button(
                     ui,
                     Icon::Command,
-                    "Command palette · Ctrl Shift P",
+                    &format!("Command palette · {}", self.shortcut(Action::Commands)),
                     self.palette.is_some(),
                     p,
                 )

@@ -176,3 +176,54 @@ fn tab_limit_preserves_existing_tabs_and_allows_reactivation() {
     assert_eq!(w.active, 0);
     assert_eq!(w.tabs.len(), 32);
 }
+#[test]
+fn duplicate_and_delete_are_single_unicode_crlf_transactions() {
+    let f = Fixture::new("🌲one\r\ntwo");
+    let mut e = f.editor();
+    e.set_cursor(4, false);
+    e.duplicate().unwrap();
+    assert_eq!(e.document.buffer.to_text(), "🌲one\r\n🌲one\r\ntwo");
+    assert_eq!(e.position(), (1, 1));
+    e.undo(false).unwrap();
+    assert_eq!(e.document.buffer.to_text(), "🌲one\r\ntwo");
+    e.delete_line().unwrap();
+    assert_eq!(e.document.buffer.to_text(), "two");
+    e.undo(false).unwrap();
+    assert_eq!(e.document.buffer.to_text(), "🌲one\r\ntwo");
+}
+#[test]
+fn duplicate_selection_and_last_line_preserve_content() {
+    let f = Fixture::new("a木");
+    let mut e = f.editor();
+    e.set_cursor(1, false);
+    e.set_cursor(4, true);
+    e.duplicate().unwrap();
+    assert_eq!(e.document.buffer.to_text(), "a木木");
+    e.undo(false).unwrap();
+    e.set_cursor(4, false);
+    e.duplicate().unwrap();
+    assert_eq!(e.document.buffer.to_text(), "a木\na木");
+}
+#[test]
+fn goto_checks_one_based_unicode_coordinates() {
+    let f = Fixture::new("a\n🌲z");
+    let mut e = f.editor();
+    e.goto(2, 2).unwrap();
+    assert_eq!(e.cursor, 6);
+    let before = e.cursor;
+    assert!(e.goto(0, 1).is_err());
+    assert!(e.goto(20, 1).is_err());
+    assert!(e.goto(2, 20).is_err());
+    assert_eq!(e.cursor, before);
+}
+#[test]
+fn previous_find_wraps_and_does_not_mutate() {
+    let f = Fixture::new("木a木a");
+    let mut e = f.editor();
+    assert!(e.find_previous("木"));
+    assert_eq!(e.selection(), 4..7);
+    assert!(e.find_previous("木"));
+    assert_eq!(e.selection(), 0..3);
+    assert!(!e.find_previous(""));
+    assert!(!e.cached_dirty);
+}

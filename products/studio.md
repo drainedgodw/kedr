@@ -32,7 +32,7 @@ there is no stable installer or notarized macOS distribution yet.
 Install Rust 1.88+ and normal desktop graphics/portal dependencies:
 
 ```bash
-sudo pacman -S --needed rustup base-devel mesa libxkbcommon libx11 libxcursor libxi libxrandr xdg-desktop-portal
+sudo pacman -S --needed rustup base-devel mesa libxkbcommon libxkbcommon-x11 libx11 libxcursor libxi libxrandr xdg-desktop-portal
 rustup default stable
 git clone https://github.com/drainedgodw/kedr.git
 cd kedr

@@ -60,3 +60,14 @@ The local Linux archive is an unsigned x86_64 preview built on Amazon Linux 2023
 it is not a universal/AppImage package. Target-machine graphics/portal and glibc
 compatibility still need checking. Remote platform results remain discoverable
 in the Studio workflow and must be inspected rather than assumed.
+
+## Observed first remote run
+
+Studio run `38287015980` at commit
+`8231ded38da1e35043d72405cd3e8088635991a9` passed tests, Clippy, release builds
+and artifact uploads on Windows and macOS. Linux passed tests, Clippy and its
+release build, but native capture failed before producing screenshots because
+`libxkbcommon-x11.so` was missing from the runner. The workflow now installs
+`libxkbcommon-x11-0`; the Arch guide also lists `libxkbcommon-x11`. This correction
+is not itself evidence that a subsequent run succeeded. Physical Windows/macOS
+interaction acceptance remains unperformed.

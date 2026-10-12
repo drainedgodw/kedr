@@ -232,7 +232,12 @@ fn jetbrains_file_palette_and_delete_line_dispatch_are_real() {
     let c = Context::default();
     s.editor_cache.focus_next = true;
     frame(&c, &mut s, vec![]);
-    frame(&c, &mut s, vec![key(Key::Y, Modifiers::COMMAND)]);
+    let native = kedr_ui::bindings(kedr_ui::Keymap::JetBrains, cfg!(target_os = "macos"));
+    let delete = native
+        .iter()
+        .find(|b| b.action == Action::DeleteLine)
+        .unwrap();
+    frame(&c, &mut s, vec![key(delete.key, delete.modifiers)]);
     assert_eq!(
         s.workspace
             .as_ref()
@@ -244,11 +249,11 @@ fn jetbrains_file_palette_and_delete_line_dispatch_are_real() {
             .to_text(),
         "two"
     );
-    frame(
-        &c,
-        &mut s,
-        vec![key(Key::N, Modifiers::COMMAND | Modifiers::SHIFT)],
-    );
+    let files = native
+        .iter()
+        .find(|b| b.action == Action::QuickOpen)
+        .unwrap();
+    frame(&c, &mut s, vec![key(files.key, files.modifiers)]);
     frame(&c, &mut s, vec![Event::Text("main".into())]);
     assert_eq!(
         s.workspace

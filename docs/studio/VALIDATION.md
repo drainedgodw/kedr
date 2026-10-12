@@ -103,3 +103,14 @@ the captured sizes. Compact keymap height and find/replace layout were corrected
 and reinspected; previous/next controls now fit in one row at 900×640. The line
 navigation action has a 44×44 target. This does not establish universal UI polish,
 physical-platform acceptance or full accessibility compliance.
+
+## Catalog revision remote follow-up
+
+Run `38297193260` at `cd0549d38bf6ed959d2dbafed0755268d4d5e8be` had one failed
+job: macOS. The new synthetic dispatch test had hard-coded Windows/Linux Ctrl+Y
+and Ctrl+Shift+N even though the implementation correctly selects macOS chords.
+The test now obtains native DeleteLine and QuickOpen bindings from the registry,
+so it checks each platform's actual preset rather than a different platform's
+keys. Revised UI tests and Clippy pass locally; subsequent remote acceptance
+remains dependent on the actual run result. No application binary change was
+required for this test correction.

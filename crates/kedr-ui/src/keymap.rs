@@ -29,6 +29,22 @@ pub struct Binding {
     pub hint: &'static str,
     pub editor_only: bool,
 }
+impl Binding {
+    fn matches_key(self, key: Key, modifiers: Modifiers) -> bool {
+        self.key == key && modifiers.matches_exact(self.modifiers)
+    }
+    pub(crate) fn consume(self, input: &mut egui::InputState) -> bool {
+        let mut consumed = false;
+        input.events.retain(|event| {
+            let matches = matches!(event, egui::Event::Key {
+                key, modifiers, pressed: true, ..
+            } if self.matches_key(*key, *modifiers));
+            consumed |= matches;
+            !matches
+        });
+        consumed
+    }
+}
 pub fn bindings(profile: Keymap, mac: bool) -> Vec<Binding> {
     use Action::*;
     let c = Modifiers::COMMAND;
@@ -260,6 +276,38 @@ mod tests {
                             .iter()
                             .any(|r| r.key == row.key && r.modifiers == row.modifiers)
                     );
+                }
+            }
+        }
+    }
+    #[test]
+    fn exact_dispatch_never_shadows_a_more_specific_chord() {
+        for profile in [Keymap::JetBrains, Keymap::Kedr] {
+            for mac in [false, true] {
+                let rows = bindings(profile, mac);
+                for target in &rows {
+                    let mut physical = target.modifiers;
+                    if physical.command {
+                        if mac {
+                            physical.mac_cmd = true;
+                        } else {
+                            physical.ctrl = true;
+                        }
+                    }
+                    for modifiers in [target.modifiers, physical] {
+                        let matched: Vec<_> = rows
+                            .iter()
+                            .filter(|b| b.matches_key(target.key, modifiers))
+                            .map(|b| b.action)
+                            .collect();
+                        assert_eq!(
+                            matched,
+                            vec![target.action],
+                            "{} {}",
+                            profile.name(),
+                            target.hint
+                        );
+                    }
                 }
             }
         }

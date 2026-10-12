@@ -9,8 +9,8 @@
 - Shared native UI: explorer, tabs, palettes, two themes, settings and viewport
   rendering. Native host uses open-source egui/eframe/rfd, not a custom OS stack.
 - Original Studio release: 47 core + 14 workbench + 8 UI tests, 69 total; eleven
-  native UI states were locally inspected. Additional changes need new evidence. The current keyboard revision passes 79
-  local tests: 47 core + 18 workbench + 2 registry + 12 UI.
+  native UI states were locally inspected. Additional changes need new evidence. The current keyboard revision passes 80
+  local tests: 47 core + 18 workbench + 3 registry + 12 UI.
 - Windows/macOS tests and release artifacts succeeded in first Studio CI run.
   Linux compiled/tested successfully but capture lacked libxkbcommon-x11; the
   dependency correction was published separately. See validation for actual runs.

@@ -538,7 +538,7 @@ impl Shell {
             if binding.editor_only && (!editor_focused || self.palette.is_some()) {
                 continue;
             }
-            if ctx.input_mut(|i| i.consume_key(binding.modifiers, binding.key)) {
+            if ctx.input_mut(|i| binding.consume(i)) {
                 self.action(binding.action);
             }
         }

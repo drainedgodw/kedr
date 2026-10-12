@@ -82,7 +82,7 @@ remote validation of the subsequent catalog/keymap changes.
 
 ## CodeCedar catalog and keyboard revision
 
-Local workspace tests now total 79: 47 core, 18 workbench, 2 keymap registry and
+Local workspace tests now total 80: 47 core, 18 workbench, 3 keymap registry and
 12 egui interaction tests. They include Unicode/CRLF duplicate and line deletion,
 1-based coordinate bounds, previous-find wrap, chord/ID uniqueness, compatible
 Ctrl+Y dispatch, classic-profile palette isolation and unsupported modified edit
@@ -114,3 +114,14 @@ so it checks each platform's actual preset rather than a different platform's
 keys. Revised UI tests and Clippy pass locally; subsequent remote acceptance
 remains dependent on the actual run result. No application binary change was
 required for this test correction.
+
+Run `38297565505` then exposed a genuine dispatch conflict: egui's default
+`consume_key` ignores extra Shift/Alt, so Cmd+O intercepted Cmd+Shift+O.
+The shell now consumes only exact modifier matches (with egui's platform command
+normalization). An exhaustive regression test checks every registered chord in
+both profiles and platform presets, including physical Ctrl/Command flags. This
+also protects Undo/Redo and Save/Save-all from less-specific chord shadowing.
+This correction changes application behavior and requires a rebuilt binary.
+
+Exact-dispatch correction: all 80 workspace tests, warnings-denied Clippy and
+optimized Linux rebuild pass locally. Remote macOS acceptance is still pending.

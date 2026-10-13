@@ -1,5 +1,19 @@
 param([Parameter(Mandatory=$true)][string]$Setup)
 $ErrorActionPreference = 'Stop'
+Add-Type @'
+using System;
+using System.Text;
+using System.Runtime.InteropServices;
+public static class KedrPaths {
+  [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+  public static extern uint GetLongPathName(string path, StringBuilder result, uint size);
+}
+'@
+function Canonical-Path([string]$path) {
+  $buffer = New-Object System.Text.StringBuilder 32768
+  if ([KedrPaths]::GetLongPathName($path, $buffer, 32768) -eq 0) { throw "Cannot resolve installed path: $path" }
+  return $buffer.ToString()
+}
 $target = Join-Path $env:TEMP ('Kedr Setup Test ' + [Guid]::NewGuid().ToString('N'))
 $setupFull = (Resolve-Path $Setup).Path
 function Install-Preview {
@@ -11,8 +25,8 @@ if (!(Test-Path "$target\kedr-studio.exe") -or !(Test-Path "$target\codecedar.ic
 $menu = Join-Path ([Environment]::GetFolderPath('StartMenu')) 'Programs\Kedr\CodeCedar.lnk'
 if (!(Test-Path $menu)) { throw 'Missing Start menu shortcut' }
 $link = (New-Object -ComObject WScript.Shell).CreateShortcut($menu)
-if ($link.TargetPath -ne "$target\kedr-studio.exe") { throw 'Wrong shortcut target' }
-if (!$link.IconLocation.StartsWith("$target\codecedar.ico")) { throw 'Wrong shortcut icon' }
+if ((Canonical-Path $link.TargetPath) -ne (Canonical-Path "$target\kedr-studio.exe")) { throw "Wrong shortcut target: $($link.TargetPath); expected $target\kedr-studio.exe" }
+if ((Canonical-Path ($link.IconLocation -replace ",\s*-?\d+$", "")) -ne (Canonical-Path "$target\codecedar.ico")) { throw "Wrong shortcut icon: $($link.IconLocation)" }
 $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\CodeCedar'
 if (!(Test-Path $key)) { throw 'Missing uninstall registration' }
 & "$target\kedr-studio.exe" --help

@@ -107,7 +107,9 @@ jobs:
           useradd -m builder
           mkdir -p /tmp/kedr-package
           cp packaging/arch/PKGBUILD /tmp/kedr-package/
-          printf '\nsource=("kedr::git+file://%s#commit=%s")\n' "$GITHUB_WORKSPACE" "$GITHUB_SHA" >> /tmp/kedr-package/PKGBUILD
+          cp -a "$GITHUB_WORKSPACE" /tmp/kedr-source
+          chown -R builder:builder /tmp/kedr-source
+          printf '\nsource=("kedr::git+file:///tmp/kedr-source#commit=%s")\n' "$GITHUB_SHA" >> /tmp/kedr-package/PKGBUILD
           chown -R builder:builder /tmp/kedr-package
       - name: Build genuine makepkg package and run workspace tests
         run: su builder -c 'cd /tmp/kedr-package && CARGO_BUILD_JOBS=2 makepkg --noconfirm'

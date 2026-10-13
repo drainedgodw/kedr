@@ -199,3 +199,41 @@ New native snapshots and remote jobs require separate review before claiming
 visual/CI acceptance for the dense layout. These are not LSP/refactoring/debugger
 parity tests. Physical Wayland portal and physical Windows setup GUI tests remain
 open; --help is a CLI health check, not a graphical application launch test.
+
+## Dense desktop acceptance verified
+
+Commit `5c8fce48389e4a3d797b6aba3dc864011ae82466` (workbench), workflow
+[38403947985](https://github.com/drainedgodw/kedr/actions/runs/38403947985),
+completed successfully on 2026-10-13. All Linux, Windows and macOS matrix jobs
+and the genuine Arch package job passed. This revision has 105 Rust workspace
+tests and 18 Python installer tests. Formatting, warnings-denied Clippy, catalog,
+generated-keymap checks and optimized builds passed. Linux bundle install,
+verification and uninstall; Windows NSIS compile and silent install/upgrade,
+Start-menu target/icon, CLI health and uninstall; and Arch makepkg/pacman
+install/desktop/icon/CLI health/removal acceptance passed. Artifacts were checked
+against GitHub's SHA-256 digests before inspecting or distributing them.
+
+All 23 native PNG states from this exact commit were individually inspected:
+dark/light editors, welcome, file and command palettes, settings, project search,
+unsaved/trust/error feedback, find/goto, keymap/edit/conflict/recording dialogs,
+compact editor/find/keymap/edit/conflict and light keymap/edit. No overlapping
+controls, broken layout or unintended whole-window overflow was found. Intentional
+horizontal editor scrolling and clipped scroll-list edges remain intentional.
+Actual artifact sizes are 17 images at 1280x900, five at 900x640 and one at
+1200x800. The runner's Xvfb screen limits captures requesting 1440x900 to
+1280x900; requested dimensions must not be mistaken for inspected dimensions.
+The 900x640 editor now displays about 20 code rows versus 17 in the previous
+layout at the same code-font size. This is a layout observation, not a throughput
+benchmark or a universal accessibility claim.
+
+The four new edit commands are toggle line comments, move a line/selected block
+up/down, and join the current and next line. Nearby cached text layouts now survive
+scrolling; distant rows are evicted. The 100,000-line regression checks bounded
+paint/cache work, not a measured percentage performance gain.
+
+Only CodeCedar is runnable. The other 32 products remain planned. Semantic
+completion/LSP, debugger, Git UI, terminal and full refactoring/JetBrains parity
+are not implemented or validated by this work. Physical Arch/Wayland portal
+behavior, real Windows setup-wizard interaction, code signing and AUR publication
+remain outside the confirmed acceptance scope. HTML is the optional brand gallery,
+not the native application's runtime.

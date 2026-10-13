@@ -128,10 +128,21 @@ impl Shell {
                     (Icon::Files, "Files", Pane::Files),
                     (Icon::Search, "Search saved project files", Pane::Search),
                 ] {
+                    let action = if pane == Pane::Files {
+                        Action::Project
+                    } else {
+                        Action::Search
+                    };
+                    let shortcut = self.shortcut(action);
+                    let tooltip = if shortcut == "—" {
+                        label.to_string()
+                    } else {
+                        format!("{label} · {shortcut}")
+                    };
                     if icon_button(
                         ui,
                         kind,
-                        label,
+                        &tooltip,
                         self.settings.show_sidebar && self.pane == pane,
                         p,
                     )
@@ -157,12 +168,28 @@ impl Shell {
                     self.action(Action::Commands);
                 }
                 ui.with_layout(Layout::bottom_up(Align::Center), |ui| {
-                    if icon_button(ui, Icon::Settings, "Appearance & settings", false, p).clicked()
+                    if icon_button(
+                        ui,
+                        Icon::Settings,
+                        &format!(
+                            "Appearance & settings · {}",
+                            self.shortcut(Action::Settings)
+                        ),
+                        false,
+                        p,
+                    )
+                    .clicked()
                     {
                         self.action(Action::Settings);
                     }
-                    if icon_button(ui, Icon::Play, "Output panel", self.settings.show_output, p)
-                        .clicked()
+                    if icon_button(
+                        ui,
+                        Icon::Play,
+                        &format!("Output panel · {}", self.shortcut(Action::Output)),
+                        self.settings.show_output,
+                        p,
+                    )
+                    .clicked()
                     {
                         self.action(Action::Output);
                     }

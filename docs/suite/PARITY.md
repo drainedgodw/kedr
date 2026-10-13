@@ -7,7 +7,7 @@ feature parity. Work is tracked per actual capability, not per renamed binary.
 | Capability family | Current evidence | Required next gate |
 | --- | --- | --- |
 | Editing / local workspace | Early editor, guarded saves, bounded search | Recovery, async saves, file watching, fault injection |
-| UX / keyboard | Shared shell and working commands | Conflict-safe custom remapping, shortcut search, context dispatch, target-machine QA |
+| UX / keyboard | Shared shell, commands and conflict-safe single-stroke remapping | Multi-stroke/modifier gestures, broader context dispatch, target-machine QA |
 | Language intelligence | Basic line colors only | Real versioned diagnostics, completion, navigation, rename and parser tests |
 | Refactoring / intentions | Not implemented | Semantic correctness, previews, cross-file transactions, rollback |
 | Build / test / run | Cargo check/test with explicit trust | Toolchain adapters, run configs, output lifecycle, test trees and coverage |
@@ -30,7 +30,7 @@ refactoring, Git, terminal and debugger shortcuts stay in the parity backlog;
 they are not mapped to unrelated commands. Double-Shift/Search Everywhere is not
 claimed when only a file palette exists. Cargo check is not labelled Rebuild.
 
-Custom keybinding editing, multi-stroke chords, double-modifier handling and
+Multi-stroke chords, double-modifier handling and
 complete context-specific keymaps are later gates. A compatible subset is not
 "all JetBrains keybinds". Default maps differ by product, platform, version and
 user configuration, so acceptance must specify a baseline.

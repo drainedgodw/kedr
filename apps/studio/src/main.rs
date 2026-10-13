@@ -166,6 +166,7 @@ impl Studio {
     fn preferences(&self) -> Preferences {
         Preferences {
             keymap: self.shell.settings.keymap.id().into(),
+            shortcuts: self.shell.settings.shortcuts.clone(),
             theme: if self.shell.settings.theme == Theme::Light {
                 "light"
             } else {

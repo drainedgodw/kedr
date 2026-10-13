@@ -2,6 +2,11 @@
 mod editor;
 mod keymap;
 pub use keymap::{Binding, Keymap, bindings, hint};
+mod remap;
+pub use remap::{
+    Chord, ShortcutOverrides, override_id, resolved_bindings, resolved_hint, set_override,
+    validate_overrides,
+};
 mod shell;
 mod theme;
 pub use editor::{EditorCache, editor};

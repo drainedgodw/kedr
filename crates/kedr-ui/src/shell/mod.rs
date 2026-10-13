@@ -145,6 +145,7 @@ pub enum Effect {
 #[derive(Clone)]
 pub struct Settings {
     pub keymap: crate::Keymap,
+    pub shortcuts: crate::ShortcutOverrides,
     pub theme: Theme,
     pub font_size: f32,
     pub sidebar_width: f32,
@@ -155,6 +156,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             keymap: crate::Keymap::default(),
+            shortcuts: Default::default(),
             theme: Theme::Dark,
             font_size: 15.,
             sidebar_width: 278.,
@@ -179,6 +181,7 @@ struct NavEntry {
 enum Dialog {
     Settings,
     Keymap,
+    EditShortcut(Action),
     GoToLine,
     Close(usize),
     Switch(PathBuf),
@@ -202,6 +205,9 @@ pub struct Shell {
     pub task: Option<TaskRunner>,
     pub editor_cache: EditorCache,
     effects: Vec<Effect>,
+    resolved_profile: crate::Keymap,
+    resolved_overrides: crate::ShortcutOverrides,
+    resolved_keys: Vec<crate::Binding>,
     pane: Pane,
     nav: Vec<NavEntry>,
     expanded: BTreeSet<PathBuf>,
@@ -212,6 +218,9 @@ pub struct Shell {
     find: String,
     goto: String,
     shortcut_filter: String,
+    shortcut_draft: String,
+    shortcut_error: Option<String>,
+    record_shortcut: bool,
     goto_focus: bool,
     replacement: String,
     find_focus: bool,
@@ -224,7 +233,19 @@ pub struct Shell {
     active_path: Option<PathBuf>,
 }
 impl Shell {
-    pub fn new(product: &'static str, settings: Settings) -> Self {
+    pub fn new(product: &'static str, mut settings: Settings) -> Self {
+        let shortcut_error = crate::validate_overrides(&settings.shortcuts).err();
+        if shortcut_error.is_some() {
+            settings.shortcuts.clear();
+        }
+        let resolved_profile = settings.keymap;
+        let resolved_overrides = settings.shortcuts.clone();
+        let resolved_keys = crate::resolved_bindings(
+            resolved_profile,
+            cfg!(target_os = "macos"),
+            &resolved_overrides,
+        )
+        .unwrap_or_else(|_| crate::bindings(resolved_profile, cfg!(target_os = "macos")));
         Self {
             product,
             workspace: None,
@@ -236,6 +257,9 @@ impl Shell {
             task: None,
             editor_cache: EditorCache::default(),
             effects: Vec::new(),
+            resolved_profile,
+            resolved_overrides,
+            resolved_keys,
             pane: Pane::Files,
             nav: Vec::new(),
             expanded: BTreeSet::new(),
@@ -246,13 +270,17 @@ impl Shell {
             find: String::new(),
             goto: String::new(),
             shortcut_filter: String::new(),
+            shortcut_draft: String::new(),
+            shortcut_error: None,
+            record_shortcut: false,
             goto_focus: false,
             replacement: String::new(),
             find_focus: false,
             search: String::new(),
             search_focus: false,
             status: "Ready".into(),
-            error: None,
+            error: shortcut_error
+                .map(|e| format!("Invalid custom shortcuts; presets restored: {e}")),
             trusted: false,
             pending_hit: None,
             active_path: None,
@@ -522,8 +550,50 @@ impl Shell {
             );
         }
     }
-    pub(super) fn shortcut(&self, action: Action) -> &'static str {
-        crate::hint(self.settings.keymap, action, cfg!(target_os = "macos"))
+    pub(super) fn refresh_shortcuts(&mut self) {
+        if self.resolved_profile != self.settings.keymap
+            || self.resolved_overrides != self.settings.shortcuts
+        {
+            self.resolved_keys = crate::resolved_bindings(
+                self.settings.keymap,
+                cfg!(target_os = "macos"),
+                &self.settings.shortcuts,
+            )
+            .unwrap_or_else(|_| crate::bindings(self.settings.keymap, cfg!(target_os = "macos")));
+            self.resolved_profile = self.settings.keymap;
+            self.resolved_overrides = self.settings.shortcuts.clone();
+        }
+    }
+    pub(super) fn shortcut(&self, action: Action) -> String {
+        self.resolved_keys
+            .iter()
+            .find(|b| b.action == action)
+            .map_or_else(
+                || "—".into(),
+                |b| {
+                    if b.hint.is_empty() {
+                        crate::Chord {
+                            key: b.key,
+                            modifiers: b.modifiers,
+                        }
+                        .label(cfg!(target_os = "macos"))
+                    } else {
+                        b.hint.into()
+                    }
+                },
+            )
+    }
+    pub fn remap_shortcut(&mut self, action: Action, value: Option<&str>) -> Result<(), String> {
+        crate::set_override(
+            &mut self.settings.shortcuts,
+            self.settings.keymap,
+            cfg!(target_os = "macos"),
+            action,
+            value,
+        )?;
+        self.refresh_shortcuts();
+        self.effects.push(Effect::PreferencesChanged);
+        Ok(())
     }
     fn shortcuts(&mut self, ctx: &Context) {
         if self.dialog.is_some() {
@@ -534,7 +604,7 @@ impl Shell {
             .as_ref()
             .and_then(Workspace::active)
             .is_some_and(|t| ctx.memory(|m| m.has_focus(Id::new(("kedr-code", &t.document.path)))));
-        for binding in crate::bindings(self.settings.keymap, cfg!(target_os = "macos")) {
+        for binding in self.resolved_keys.clone() {
             if binding.editor_only && (!editor_focused || self.palette.is_some()) {
                 continue;
             }
@@ -552,6 +622,7 @@ impl Shell {
         }
     }
     pub fn show(&mut self, ctx: &Context) -> Vec<Effect> {
+        self.refresh_shortcuts();
         self.shortcuts(ctx);
         let p = self.settings.theme.palette();
         self.header(ctx, p);

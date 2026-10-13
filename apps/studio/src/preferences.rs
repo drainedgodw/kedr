@@ -10,6 +10,7 @@ use std::{
 pub struct Preferences {
     pub theme: String,
     pub keymap: String,
+    pub shortcuts: kedr_ui::ShortcutOverrides,
     pub font_size: f32,
     pub recent: Vec<PathBuf>,
 }
@@ -27,6 +28,7 @@ impl Preferences {
     }
     pub fn settings(&self) -> Settings {
         Settings {
+            shortcuts: self.shortcuts.clone(),
             keymap: if self.keymap == "kedr" {
                 kedr_ui::Keymap::Kedr
             } else {
@@ -76,5 +78,29 @@ fn path() -> Option<PathBuf> {
             .map(PathBuf::from)
             .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))
             .map(|p| p.join("kedr/preferences.json"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn legacy_preferences_and_override_round_trip_are_compatible() {
+        let legacy: Preferences =
+            serde_json::from_str(r#"{"theme":"light","keymap":"kedr","font_size":17}"#).unwrap();
+        assert!(legacy.settings().shortcuts.is_empty());
+        let mut prefs = legacy;
+        kedr_ui::set_override(
+            &mut prefs.shortcuts,
+            kedr_ui::Keymap::Kedr,
+            false,
+            kedr_ui::Action::QuickOpen,
+            Some("F8"),
+        )
+        .unwrap();
+        let loaded: Preferences =
+            serde_json::from_slice(&serde_json::to_vec(&prefs).unwrap()).unwrap();
+        assert_eq!(loaded.settings().shortcuts, prefs.shortcuts);
+        assert_eq!(loaded.settings().font_size, 17.);
     }
 }

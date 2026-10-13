@@ -39,9 +39,13 @@ A dash means no preset chord, not an unavailable action: use the command palette
 
 Undo/redo, select-all, duplicate and delete-line shortcuts require actual editor focus; they do not mutate the document while a search field, palette or modal owns focus. Clipboard, arrow/word movement, Home/End, selection extension, Backspace/Delete, Enter and Tab/Shift+Tab remain editor-native. These are Unicode-scalar operations, not complete grapheme/bidi or native IME acceptance.
 
+## Custom shortcuts
+
+Settings → Keyboard shortcuts → Edit lets you type or record a single combination, apply it, unbind it, or restore the preset. Reset this profile restores all overrides for the active platform/profile. Changes are persisted in local preferences and immediately drive the same dispatch/menu/palette hints. Conflicts are rejected atomically: no existing action is silently displaced. Copy/cut/paste, cancellation, normal typing/navigation and common OS chords are protected. If resetting one action conflicts with another override, unbind that other action first or reset the whole profile. Details: [custom shortcut contract](SHORTCUTS.md).
+
 ## Not implemented
 
-Custom remapping, conflict editing, multi-stroke chords, double-modifier triggers, full Search Everywhere, semantic completion/refactoring, debugger, terminal, Git and product-specific shortcut families are not delivered. Unsupported features are not mapped to fake actions. See [parity gates](PARITY.md).
+Multi-stroke chords, double-modifier triggers, full Search Everywhere, semantic completion/refactoring, debugger, terminal, Git and product-specific shortcut families are not delivered. Unsupported features are not mapped to fake actions. See [parity gates](PARITY.md).
 
 ## Reference baseline
 

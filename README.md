@@ -16,6 +16,8 @@ Kedr is not affiliated with JetBrains.
 - [Download and install CodeCedar on Linux, Windows or macOS](products/codecedar.md)
 - [What has actually been delivered](docs/suite/PROGRESS.md)
 - [Keyboard profiles and implemented actions](docs/suite/KEYMAP.md)
+- [Customize shortcuts](docs/suite/SHORTCUTS.md)
+- [Workbench gap audit](docs/suite/AUDIT.md)
 - [Feature-parity roadmap and acceptance gates](docs/suite/PARITY.md)
 
 ```bash

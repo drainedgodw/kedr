@@ -127,6 +127,40 @@ impl Shell {
         };
         let (mut close, mut discard, mut save) = (false, false, false);
         let mut next_dialog = None;
+        let was_recording = self.record_shortcut && matches!(dialog, Dialog::EditShortcut(_));
+        if was_recording {
+            let pressed = ctx.input_mut(|i| {
+                let pressed = i.events.iter().find_map(|e| match e {
+                    egui::Event::Key {
+                        key,
+                        modifiers,
+                        pressed: true,
+                        repeat: false,
+                        ..
+                    } => Some((*key, *modifiers)),
+                    _ => None,
+                });
+                i.events.retain(|e| {
+                    !matches!(
+                        e,
+                        egui::Event::Key { pressed: true, .. } | egui::Event::Text(_)
+                    )
+                });
+                pressed
+            });
+            if let Some((key, modifiers)) = pressed {
+                self.record_shortcut = false;
+                if key != Key::Escape {
+                    match crate::Chord::from_event(key, modifiers, cfg!(target_os = "macos")) {
+                        Ok(chord) => {
+                            self.shortcut_draft = chord.label(cfg!(target_os = "macos"));
+                            self.shortcut_error = None;
+                        }
+                        Err(error) => self.shortcut_error = Some(error),
+                    }
+                }
+            }
+        }
         egui::Modal::new(Id::new("kedr-dialog")).show(ctx, |ui| {
             ui.set_width(520.0_f32.min(ctx.content_rect().width() - 80.));
             match &dialog {
@@ -137,6 +171,7 @@ impl Shell {
                         for profile in [crate::Keymap::JetBrains, crate::Keymap::Kedr] {
                             if ui.selectable_label(self.settings.keymap == profile, profile.name()).clicked() {
                                 self.settings.keymap = profile;
+                                self.refresh_shortcuts();
                                 self.effects.push(Effect::PreferencesChanged);
                             }
                         }
@@ -147,16 +182,66 @@ impl Shell {
                         for action in Action::ALL {
                             let hint = self.shortcut(action);
                             if !format!("{} {} {}", action.label(), action.id(), hint).to_lowercase().contains(&filter) { continue; }
-                            ui.spacing_mut().interact_size.y = 20.;
-                            ui.spacing_mut().item_spacing.y = 4.;
-                            ui.label(RichText::new(action.label()).strong().color(p.text)).on_hover_text(action.id());
-                            ui.label(RichText::new(hint).color(p.accent));
-                            ui.add_space(8.);
+                            ui.horizontal(|ui| {
+                                ui.vertical(|ui| {
+                                    ui.label(RichText::new(action.label()).strong().color(p.text)).on_hover_text(action.id());
+                                    ui.label(RichText::new(&hint).color(p.accent));
+                                });
+                                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                    if ui.add(egui::Button::new("Edit").min_size(Vec2::new(64.,44.))).clicked() {
+                                        let id = crate::override_id(self.settings.keymap, cfg!(target_os = "macos"), action);
+                                        self.shortcut_draft = self.settings.shortcuts.get(&id).cloned().unwrap_or_else(|| {
+                                            crate::bindings(self.settings.keymap, cfg!(target_os = "macos")).into_iter().find(|b| b.action == action).map_or_else(String::new, |b| crate::Chord {key:b.key,modifiers:b.modifiers}.label(cfg!(target_os = "macos")))
+                                        });
+                                        self.shortcut_error = None;
+                                        self.record_shortcut = false;
+                                        next_dialog = Some(Dialog::EditShortcut(action)); close = true;
+                                    }
+                                });
+                            });
+                            ui.add_space(4.);
                             ui.separator();
                         }
                     });
-                    ui.label(RichText::new("Copy/cut/paste, selection, arrows and Tab are editor-native. Custom remapping and full parity are still planned.").color(p.muted));
-                    if ui.button("Done").clicked() { close = true; self.editor_cache.focus_next = true; }
+                    ui.label(RichText::new("Edit or record a single shortcut. Conflicts are rejected; typing and clipboard keys stay protected. Full IDE parity is still planned.").color(p.muted));
+                    ui.horizontal_wrapped(|ui| {
+                        if ui.button("Done").clicked() { close = true; self.editor_cache.focus_next = true; }
+                        if ui.button("Reset this profile").clicked() {
+                            let prefix = format!("{}:{}:", self.settings.keymap.id(), if cfg!(target_os = "macos") {"mac"} else {"other"});
+                            self.settings.shortcuts.retain(|id,_| !id.starts_with(&prefix));
+                            self.refresh_shortcuts();
+                            self.effects.push(Effect::PreferencesChanged);
+                        }
+                    });
+                }
+                Dialog::EditShortcut(action) => {
+                    ui.heading("Edit shortcut");
+                    ui.label(RichText::new(action.label()).strong());
+                    ui.label(RichText::new(format!("{} · {}", self.settings.keymap.name(), action.id())).color(p.muted));
+                    ui.add_space(12.);
+                    ui.label(if cfg!(target_os = "macos") {"Example: Cmd+Alt+L or F8"} else {"Example: Ctrl+Alt+L or F8"});
+                    ui.add_enabled(!self.record_shortcut, singleline(&mut self.shortcut_draft).hint_text("No shortcut").char_limit(96).desired_width(f32::INFINITY));
+                    if ui.add(egui::Button::new(if self.record_shortcut {"Press keys… Esc cancels recording"} else {"Record keys"}).min_size(Vec2::new(200.,44.))).clicked() {
+                        self.record_shortcut = !self.record_shortcut;
+                    }
+                    ui.add_space(8.);
+                    ui.label(RichText::new("One combination per action. Changes affect only this platform and profile. OS-reserved shortcuts may not reach this window.").color(p.muted));
+                    if let Some(error) = &self.shortcut_error { ui.label(RichText::new(error).color(p.amber)); }
+                    ui.add_space(12.);
+                    ui.horizontal_wrapped(|ui| {
+                        let apply = ui.add_enabled(!self.record_shortcut, egui::Button::new("Apply")).clicked();
+                        let unbind = ui.add_enabled(!self.record_shortcut, egui::Button::new("Unbind")).clicked();
+                        let reset = ui.add_enabled(!self.record_shortcut, egui::Button::new("Use preset")).clicked();
+                        if apply || unbind || reset {
+                            let draft = self.shortcut_draft.clone();
+                            let value = if reset { None } else if unbind { Some("") } else { Some(draft.as_str()) };
+                            match self.remap_shortcut(*action, value) {
+                                Ok(()) => { next_dialog = Some(Dialog::Keymap); close = true; }
+                                Err(error) => self.shortcut_error = Some(error),
+                            }
+                        }
+                        if ui.button("Cancel").clicked() { next_dialog = Some(Dialog::Keymap); close = true; self.record_shortcut = false; }
+                    });
                 }
                 Dialog::GoToLine => {
                     ui.heading("Go to line / column");
@@ -260,7 +345,7 @@ impl Shell {
             }
         }
         if discard {
-            match dialog {
+            match dialog.clone() {
                 Dialog::Close(i) => {
                     if let Some(w) = &mut self.workspace {
                         w.discard(i)
@@ -272,8 +357,12 @@ impl Shell {
             }
             close = true;
         }
-        if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
+        if !was_recording && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             close = true;
+            self.record_shortcut = false;
+            if matches!(dialog, Dialog::EditShortcut(_)) {
+                next_dialog = Some(Dialog::Keymap);
+            }
         }
         if close {
             self.dialog = next_dialog;
@@ -286,6 +375,21 @@ impl Shell {
             "commands" => self.action(Action::Commands),
             "settings" => self.action(Action::Settings),
             "keymap" => self.action(Action::Keybindings),
+            "remap" | "remap-conflict" | "remap-record" => {
+                self.dialog = Some(Dialog::EditShortcut(Action::QuickOpen));
+                self.shortcut_draft = if state == "remap-conflict" {
+                    "Ctrl+S"
+                } else {
+                    "Ctrl+Alt+L"
+                }
+                .into();
+                self.shortcut_error = if state == "remap-conflict" {
+                    Some("Go to file conflicts with Save all files (Ctrl+S)".into())
+                } else {
+                    None
+                };
+                self.record_shortcut = state == "remap-record";
+            }
             "goto" => self.action(Action::GoToLine),
             "find" => self.action(Action::Replace),
             "trust" => self.action(Action::Check),
@@ -306,5 +410,60 @@ impl Shell {
             ),
             _ => {}
         }
+    }
+}
+
+#[cfg(test)]
+mod remap_tests {
+    use super::*;
+    fn frame(s: &mut Shell, ctx: &Context, events: Vec<egui::Event>) {
+        let _ = ctx.run(
+            egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    Vec2::new(900., 640.),
+                )),
+                events,
+                focused: true,
+                ..Default::default()
+            },
+            |ctx| {
+                s.show(ctx);
+            },
+        );
+    }
+    fn press(key: Key) -> egui::Event {
+        egui::Event::Key {
+            key,
+            physical_key: None,
+            pressed: true,
+            repeat: false,
+            modifiers: Modifiers::NONE,
+        }
+    }
+    #[test]
+    fn recorder_captures_a_chord_without_applying_or_closing() {
+        let mut s = Shell::new("CodeCedar", Settings::default());
+        s.capture_state("remap-record");
+        let ctx = Context::default();
+        frame(&mut s, &ctx, vec![press(Key::F8)]);
+        assert_eq!(s.shortcut_draft, "F8");
+        assert!(!s.record_shortcut);
+        assert!(s.settings.shortcuts.is_empty());
+        assert!(matches!(
+            s.dialog,
+            Some(Dialog::EditShortcut(Action::QuickOpen))
+        ));
+    }
+    #[test]
+    fn escape_cancels_recording_before_it_cancels_dialog() {
+        let mut s = Shell::new("CodeCedar", Settings::default());
+        s.capture_state("remap-record");
+        let ctx = Context::default();
+        frame(&mut s, &ctx, vec![press(Key::Escape)]);
+        assert!(!s.record_shortcut);
+        assert!(matches!(s.dialog, Some(Dialog::EditShortcut(_))));
+        frame(&mut s, &ctx, vec![press(Key::Escape)]);
+        assert!(matches!(s.dialog, Some(Dialog::Keymap)));
     }
 }

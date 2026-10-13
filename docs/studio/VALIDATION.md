@@ -125,3 +125,29 @@ This correction changes application behavior and requires a rebuilt binary.
 
 Exact-dispatch correction: all 80 workspace tests, warnings-denied Clippy and
 optimized Linux rebuild pass locally. Remote macOS acceptance is still pending.
+
+## Custom-shortcut audit revision
+
+The preceding exact-dispatch run `38298125839` at
+`c03cb19ec43a56ab12a7ac054c47b9f62c303db2` completed successfully across the
+Studio workflow matrix. This is evidence for that revision, not for later code.
+
+The custom-shortcut revision passes 93 local workspace tests: 47 core,
+18 workbench, 10 registry/remapping, 2 dialog, 15 interaction and 1 preference
+compatibility test. Warnings-denied Clippy and rustdoc, formatting, catalog
+validation and an optimized Linux build pass. Tests cover atomic conflicts,
+unbind/reset, imported invalid maps, profile/platform isolation, normal typing
+protection, physical modifier normalization, macOS Control versus Command,
+recording cancellation, editor focus, real remapped dispatch and legacy JSON.
+
+All 23 captured native states were individually inspected: the preceding sixteen
+states plus remapping, conflict feedback, key recording, two compact edit states
+and light keymap/edit dialogs. No broken layout, control overlap or unintended
+container overflow was found at the captured 1440×900/1200×800/900×640 sizes.
+Intentional scrolling and clipped scroll-list edges are not whole-window overflow.
+No image generation/contact sheet was substituted for native UI inspection.
+
+Platform-specific remapping semantics are unit-tested for both presets/platforms.
+Physical macOS/Windows keyboards, Arch/Wayland, arbitrary compositor shortcuts,
+IME and assistive-technology acceptance remain open. The new workflow run must
+be checked separately before claiming remote acceptance of this revision.

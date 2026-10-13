@@ -339,3 +339,72 @@ fn unsupported_modified_edit_keys_do_not_fake_ide_actions() {
         "a"
     );
 }
+
+#[test]
+fn remapped_file_palette_dispatches_and_conflicts_are_atomic() {
+    let f = Fixture::new("one\ntwo");
+    let mut s = f.shell();
+    let c = Context::default();
+    s.remap_shortcut(Action::QuickOpen, Some("F8")).unwrap();
+    let old = s.settings.shortcuts.clone();
+    assert!(s.remap_shortcut(Action::Commands, Some("F8")).is_err());
+    assert_eq!(s.settings.shortcuts, old);
+    frame(&c, &mut s, vec![]);
+    frame(&c, &mut s, vec![key(Key::F8, Modifiers::NONE)]);
+    frame(&c, &mut s, vec![Event::Text("main".into())]);
+    assert_eq!(
+        s.workspace
+            .as_ref()
+            .unwrap()
+            .active()
+            .unwrap()
+            .document
+            .buffer
+            .to_text(),
+        "one\ntwo"
+    );
+}
+#[test]
+fn remapped_editor_actions_still_require_editor_focus() {
+    let f = Fixture::new("one\ntwo");
+    let mut s = f.shell();
+    let c = Context::default();
+    s.remap_shortcut(Action::DeleteLine, Some("F9")).unwrap();
+    s.editor_cache.focus_next = true;
+    frame(&c, &mut s, vec![]);
+    frame(&c, &mut s, vec![key(Key::F9, Modifiers::NONE)]);
+    assert_eq!(
+        s.workspace
+            .as_ref()
+            .unwrap()
+            .active()
+            .unwrap()
+            .document
+            .buffer
+            .to_text(),
+        "two"
+    );
+    s.action(Action::QuickOpen);
+    frame(&c, &mut s, vec![]);
+    frame(&c, &mut s, vec![key(Key::F9, Modifiers::NONE)]);
+    assert_eq!(
+        s.workspace
+            .as_ref()
+            .unwrap()
+            .active()
+            .unwrap()
+            .document
+            .buffer
+            .to_text(),
+        "two"
+    );
+}
+#[test]
+fn invalid_stored_overrides_restore_safe_presets() {
+    let mut settings = Settings::default();
+    settings.shortcuts.insert("unknown".into(), "F8".into());
+    let mut s = Shell::new("CodeCedar", settings);
+    assert!(s.settings.shortcuts.is_empty());
+    let c = Context::default();
+    frame(&c, &mut s, vec![]);
+}

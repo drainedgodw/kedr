@@ -29,16 +29,28 @@ pub struct Binding {
     pub hint: &'static str,
     pub editor_only: bool,
 }
+pub(crate) fn canonical_modifiers(mut m: Modifiers, mac: bool) -> Modifiers {
+    if mac {
+        m.command |= m.mac_cmd;
+        m.mac_cmd = false;
+    } else {
+        m.command |= m.ctrl;
+        m.ctrl = false;
+        m.mac_cmd = false;
+    }
+    m
+}
 impl Binding {
-    fn matches_key(self, key: Key, modifiers: Modifiers) -> bool {
-        self.key == key && modifiers.matches_exact(self.modifiers)
+    pub(crate) fn matches_key(self, key: Key, modifiers: Modifiers, mac: bool) -> bool {
+        self.key == key
+            && canonical_modifiers(modifiers, mac) == canonical_modifiers(self.modifiers, mac)
     }
     pub(crate) fn consume(self, input: &mut egui::InputState) -> bool {
         let mut consumed = false;
         input.events.retain(|event| {
             let matches = matches!(event, egui::Event::Key {
                 key, modifiers, pressed: true, ..
-            } if self.matches_key(*key, *modifiers));
+            } if self.matches_key(*key, *modifiers, cfg!(target_os = "macos")));
             consumed |= matches;
             !matches
         });
@@ -297,7 +309,7 @@ mod tests {
                     for modifiers in [target.modifiers, physical] {
                         let matched: Vec<_> = rows
                             .iter()
-                            .filter(|b| b.matches_key(target.key, modifiers))
+                            .filter(|b| b.matches_key(target.key, modifiers, mac))
                             .map(|b| b.action)
                             .collect();
                         assert_eq!(

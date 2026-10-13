@@ -1,4 +1,5 @@
 //! One shared visual language and workbench shell for the Kedr product family.
+mod brand;
 mod editor;
 mod keymap;
 pub use keymap::{Binding, Keymap, bindings, hint};
@@ -10,7 +11,7 @@ pub use remap::{
 mod shell;
 mod theme;
 pub use editor::{EditorCache, editor};
-use egui::{Color32, Sense, Stroke, Ui, Vec2};
+use egui::{Color32, Stroke, Ui, Vec2};
 pub use shell::{Action, Effect, Settings, Shell};
 pub use theme::{Palette, Theme, apply_theme};
 #[derive(Clone, Copy)]
@@ -106,23 +107,17 @@ pub fn icon_button(
     r.on_hover_text(label)
 }
 pub fn wordmark(ui: &mut Ui, p: Palette) {
-    let (r, _) = ui.allocate_exact_size(Vec2::new(32., 32.), Sense::hover());
-    ui.painter().rect_filled(r, 8., p.accent);
-    let point = |x: f32, y: f32| r.min + Vec2::new(x, y);
-    ui.painter().add(egui::Shape::convex_polygon(
-        vec![point(16., 4.), point(8., 13.), point(24., 13.)],
-        p.canvas,
-        Stroke::NONE,
-    ));
-    ui.painter().add(egui::Shape::convex_polygon(
-        vec![point(16., 10.), point(5., 22.), point(27., 22.)],
-        p.canvas,
-        Stroke::NONE,
-    ));
-    ui.painter().rect_filled(
-        egui::Rect::from_min_max(point(14., 20.), point(18., 28.)),
-        0.,
-        p.canvas,
-    );
+    let id = egui::Id::new("kedr-brand-texture");
+    let cached = ui.ctx().data_mut(|d| d.get_temp::<egui::TextureHandle>(id));
+    let texture = cached.unwrap_or_else(|| {
+        let texture = ui.ctx().load_texture(
+            "Kedr logo",
+            egui::ColorImage::from_rgba_unmultiplied([32, 32], brand::RGBA),
+            egui::TextureOptions::LINEAR,
+        );
+        ui.ctx().data_mut(|d| d.insert_temp(id, texture.clone()));
+        texture
+    });
+    ui.add(egui::Image::new((texture.id(), Vec2::splat(32.))));
     ui.label(egui::RichText::new("KEDR").size(18.).strong().color(p.text));
 }

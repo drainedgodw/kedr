@@ -13,7 +13,8 @@ Kedr is not affiliated with JetBrains.
 
 ## Start here
 
-- [Download and install CodeCedar on Linux, Windows or macOS](products/codecedar.md)
+- [Download CodeCedar preview builds](products/codecedar.md)
+- [Linux selector, Arch local package and Windows installer](docs/suite/INSTALL.md)
 - [What has actually been delivered](docs/suite/PROGRESS.md)
 - [Keyboard profiles and implemented actions](docs/suite/KEYMAP.md)
 - [Customize shortcuts](docs/suite/SHORTCUTS.md)

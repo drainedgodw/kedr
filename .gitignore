@@ -9,3 +9,5 @@ __pycache__/
 /kedr-studio-*.zip
 /tests/fixtures/studio/target/
 /tests/fixtures/studio/Cargo.lock
+
+assets/icons/

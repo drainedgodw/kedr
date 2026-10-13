@@ -1,0 +1,36 @@
+# Local VCS package: uses makepkg/pacman without an AUR account or publication.
+pkgname=codecedar-git
+pkgver=0.1.0.r1.glocal
+pkgrel=1
+pkgdesc='CodeCedar native editor preview from the Kedr monorepo'
+arch=('x86_64')
+url='https://github.com/drainedgodw/kedr'
+license=('MIT')
+depends=('gcc-libs' 'glibc' 'libx11' 'libxcursor' 'libxi' 'libxrandr' 'libxkbcommon' 'libxkbcommon-x11' 'wayland' 'libglvnd' 'xdg-desktop-portal')
+makedepends=('rust' 'git' 'python')
+optdepends=('rust: Cargo check/test' 'xdg-desktop-portal-gtk: folder picker on GTK desktops' 'xdg-desktop-portal-kde: folder picker on KDE' 'xdg-desktop-portal-hyprland: portal backend on Hyprland')
+provides=('codecedar')
+conflicts=('codecedar')
+source=('kedr::git+https://github.com/drainedgodw/kedr.git')
+sha256sums=('SKIP')
+pkgver() {
+  cd "$srcdir/kedr"
+  printf '0.1.0.r%s.g%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+build() {
+  cd "$srcdir/kedr"
+  cargo build --locked --release -p kedr-studio
+}
+check() {
+  cd "$srcdir/kedr"
+  cargo test --locked --workspace
+  python scripts/check_catalog.py
+}
+package() {
+  cd "$srcdir/kedr"
+  install -Dm755 target/release/kedr-studio "$pkgdir/usr/bin/codecedar"
+  install -Dm644 packaging/linux/codecedar.desktop "$pkgdir/usr/share/applications/io.github.drainedgodw.CodeCedar.desktop"
+  install -Dm644 assets/brand/codecedar.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/codecedar.svg"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 products/codecedar.md "$pkgdir/usr/share/doc/codecedar/README.md"
+}

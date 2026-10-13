@@ -30,7 +30,13 @@ select a successful run for the desired commit, and download its platform artifa
 Artifacts are named `kedr-studio-<OS>-<architecture>`. GitHub may require sign-in to
 retrieve Actions artifacts. Availability is determined by the actual job result,
 not by this guide or a workflow configuration. These are unsigned preview builds;
-there is no stable installer or notarized macOS distribution yet.
+Linux and Windows preview installers are now built by CI; there is no signed stable release or notarized macOS distribution.
+
+## Install with menu entries and icons
+
+See [installation guide](../docs/suite/INSTALL.md) for the offline Linux selector,
+local makepkg/pacman package without AUR registration, and Windows setup wizard.
+Only CodeCedar can currently be installed; other catalog products stay disabled.
 
 ## Build on Arch Linux
 
@@ -74,7 +80,7 @@ source builds; it has not been manually inspected on a physical Mac.
 3. Use **Ctrl Shift A** / **Cmd Shift A** for commands and **Ctrl F** / **Cmd F** to find.
 4. **Ctrl S** / **Cmd S** saves all open files in the compatible profile. Changed-on-disk files are refused, not silently overwritten.
 5. **Check / F5** in a Cargo workspace opens an explicit trust decision before execution.
-6. Settings → Keyboard shortcuts shows every implemented action and both profiles.
+6. Settings → Keyboard shortcuts shows every implemented action and both profiles; Edit records/remaps a single combination.
 
 The default is a JetBrains-compatible subset. Choose Kedr classic to retain Ctrl P,
 Ctrl Shift P and save-current-file behavior. Hints adapt to platform/profile; no

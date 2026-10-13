@@ -20,9 +20,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Linux graphics dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libxkbcommon-x11-0 libgl1-mesa-dev libwayland-dev xvfb
+        run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libxkbcommon-x11-0 libgl1-mesa-dev libwayland-dev xvfb desktop-file-utils
       - run: cargo fmt --all --check
       - run: cargo test --locked --workspace
+      - name: Linux installer filesystem tests
+        if: runner.os == 'Linux'
+        run: python3 -m unittest discover -s packaging/tests -v
       - name: Validate product catalog and generated keyboard table
         run: python scripts/check_catalog.py
       - run: cargo clippy --locked --workspace --all-targets -- -D warnings
@@ -37,6 +40,38 @@ jobs:
         with:
           name: studio-native-ui
           path: ui-captures/
+      - name: Build Linux offline installer
+        if: runner.os == 'Linux'
+        run: |
+          python3 scripts/build_linux_bundle.py --binary target/release/kedr-studio --out linux-installer
+          tar -czf CodeCedar-Linux-x86_64-Installer.tar.gz -C linux-installer .
+          export HOME="$(mktemp -d)"
+          export XDG_DATA_HOME="$HOME/.local/share"
+          bash linux-installer/install.sh --list
+          bash linux-installer/install.sh --product codecedar
+          bash linux-installer/install.sh --verify
+          "$HOME/.local/bin/codecedar" --help
+          desktop-file-validate "$XDG_DATA_HOME/applications/io.github.drainedgodw.CodeCedar.desktop"
+          bash linux-installer/install.sh --uninstall
+          test ! -e "$HOME/.local/bin/codecedar"
+      - name: Build and test Windows installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install nsis -y --no-progress
+          python scripts/build_windows_payload.py --binary target/release/kedr-studio.exe --out windows-payload
+          $payload = (Resolve-Path windows-payload).Path
+          $out = Join-Path $PWD 'CodeCedar-Setup.exe'
+          & 'C:\Program Files (x86)\NSIS\makensis.exe' "/DPAYLOAD=$payload" "/DOUTFILE=$out" packaging/windows/codecedar.nsi
+          if ($LASTEXITCODE -ne 0) { throw 'NSIS compilation failed' }
+          ./scripts/test_windows_install.ps1 -Setup $out
+      - uses: actions/upload-artifact@v4
+        if: runner.os != 'macOS'
+        with:
+          name: CodeCedar-Installer-${{ runner.os }}
+          path: |
+            CodeCedar-Linux-x86_64-Installer.tar.gz
+            CodeCedar-Setup.exe
       - name: Package Unix preview
         if: runner.os != 'Windows'
         run: |
@@ -60,3 +95,32 @@ jobs:
           path: |
             kedr-studio-*.tar.gz
             kedr-studio-*.zip
+
+  arch-package:
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare Arch package dependencies
+        run: |
+          pacman -Syu --noconfirm git rust python desktop-file-utils libx11 libxcursor libxi libxrandr libxkbcommon libxkbcommon-x11 wayland libglvnd xdg-desktop-portal
+          useradd -m builder
+          mkdir -p /tmp/kedr-package
+          cp packaging/arch/PKGBUILD /tmp/kedr-package/
+          printf '\nsource=("kedr::git+file://%s#commit=%s")\n' "$GITHUB_WORKSPACE" "$GITHUB_SHA" >> /tmp/kedr-package/PKGBUILD
+          chown -R builder:builder /tmp/kedr-package
+      - name: Build genuine makepkg package and run workspace tests
+        run: su builder -c 'cd /tmp/kedr-package && CARGO_BUILD_JOBS=2 makepkg --noconfirm'
+      - name: Test pacman installation, menu, icon, launch and removal
+        run: |
+          pacman -U --noconfirm /tmp/kedr-package/*.pkg.tar.zst
+          desktop-file-validate /usr/share/applications/io.github.drainedgodw.CodeCedar.desktop
+          test -f /usr/share/icons/hicolor/scalable/apps/codecedar.svg
+          codecedar --help
+          pacman -R --noconfirm codecedar-git
+          test ! -e /usr/bin/codecedar
+          test ! -e /usr/share/applications/io.github.drainedgodw.CodeCedar.desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CodeCedar-Arch-Package
+          path: /tmp/kedr-package/*.pkg.tar.zst

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=CodeCedar
+Comment=Kedr local development workspace
+Exec=codecedar
+Icon=codecedar
+Terminal=false
+Categories=Development;IDE;
+StartupNotify=true
+StartupWMClass=io.github.drainedgodw.CodeCedar

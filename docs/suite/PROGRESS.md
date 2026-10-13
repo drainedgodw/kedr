@@ -35,3 +35,19 @@ server services, extension sandbox, production recovery and JetBrains parity.
 Logos/catalog entries/shortcut mappings do not implement those capabilities.
 
 [Desktop evidence](../studio/VALIDATION.md) · [Parity gates](PARITY.md)
+
+## Installation and dialog revision
+
+Original identities were redesigned with split-cedar geometry, larger outlined
+monograms and per-product accents. CodeCedar now supplies Linux menu/hicolor
+icons, native window identity and a Windows executable/resource/setup icon.
+An offline terminal selector lists all products while allowing only CodeCedar.
+The per-user XDG installer validates payload/ownership, upgrades, verifies and
+uninstalls; projects/preferences and modified files are protected on Linux.
+A local VCS PKGBUILD uses makepkg/pacman without AUR publication. A per-user NSIS
+wizard registers Windows Start menu icons and an Apps-settings uninstaller.
+
+A reported folder-picker freeze exposed a blocking native dialog call on the
+render thread. Selection is now isolated on a dedicated worker with one pending
+dialog, cancellation/failure handling and generation checks for stale results.
+This fixes the architectural blockage; physical Wayland acceptance is still open.

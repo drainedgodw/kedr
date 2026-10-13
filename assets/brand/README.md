@@ -1,14 +1,12 @@
-# Kedr identity assets
+# Kedr identity, revision 2
 
-Original SVG family marks: a cedar silhouette, rounded blue field and a unique
-product monogram. These are Kedr designs, not JetBrains marks. White on #1A63B8;
-small-size application chrome uses the cedar symbol without the monogram.
+Original split-cedar mark on a navy field, larger white outlined monograms and
+per-product accent colors. Color is not the sole identifier; every mark has a
+unique monogram and accessible SVG title. These are not JetBrains marks.
 
-SVG glyphs are outlined paths, not external fonts. Each product SVG includes a
-viewBox and accessible title. Use catalog.json to resolve product name, logo,
-guide and real status; do not infer a released app from an asset.
+SVGs are editable and need no external fonts at runtime. PNGs at 48/128/256/512
+and Windows ICOs are generated under assets/icons by scripts/generate_brand.py.
+The generator needs fontTools, Arial Bold, Node sharp and Pillow; runtime apps do
+not need those design dependencies. catalog.html is only an identity preview.
 
-catalog.html is a responsive visual identity catalog. Only CodeCedar is a native
-preview; the other named marks describe planned products. No trademark clearance
-or complete ecosystem parity is asserted. Font outlines identify short labels,
-not an embedded/reusable font file.
+Naming/logo files do not make planned products installable.

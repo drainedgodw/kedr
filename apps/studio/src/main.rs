@@ -1,4 +1,6 @@
+mod icon;
 mod jobs;
+mod picker;
 mod preferences;
 use eframe::egui::{self, ViewportCommand};
 use jobs::{Jobs, Request, Response};
@@ -60,6 +62,7 @@ impl Options {
 struct Studio {
     shell: Shell,
     jobs: Jobs,
+    picker: picker::FolderPicker,
     options: Options,
     frames: usize,
     state_applied: bool,
@@ -90,6 +93,7 @@ impl Studio {
         let mut app = Self {
             shell,
             jobs,
+            picker: Default::default(),
             options,
             frames: 0,
             state_applied: false,
@@ -117,6 +121,17 @@ impl Studio {
         }
     }
     fn poll(&mut self, ctx: &egui::Context) {
+        if let Some(result) = self.picker.poll() {
+            match result {
+                Ok((generation, Some(path)))
+                    if generation == self.jobs.generation.load(Ordering::Relaxed) =>
+                {
+                    self.shell.request_project(path)
+                }
+                Ok(_) => {}
+                Err(error) => self.shell.error(error),
+            }
+        }
         while let Ok(r) = self.jobs.receive.try_recv() {
             let current = self.jobs.generation.load(Ordering::Relaxed);
             match r {
@@ -181,12 +196,13 @@ impl Studio {
         for e in effects {
             match e {
                 Effect::PickProject => {
-                    if let Some(path) = rfd::FileDialog::new()
-                        .set_title("Open Kedr workspace")
-                        .pick_folder()
+                    if !self
+                        .picker
+                        .start(self.jobs.generation.load(Ordering::Relaxed), ctx.clone())
                     {
-                        self.shell.request_project(path);
-                        ctx.request_repaint();
+                        self.shell.error(
+                            "A folder picker is already open. Finish or cancel that dialog first.",
+                        );
                     }
                 }
                 Effect::OpenProject(path) => self.open_project(path),
@@ -328,7 +344,9 @@ fn main() -> eframe::Result {
     let viewport = egui::ViewportBuilder::default()
         .with_inner_size(options.size.unwrap_or([1440., 900.]))
         .with_min_inner_size([760., 520.])
-        .with_title("CodeCedar — Kedr");
+        .with_title("CodeCedar — Kedr")
+        .with_app_id("io.github.drainedgodw.CodeCedar")
+        .with_icon(eframe::icon_data::from_png_bytes(icon::PNG).expect("embedded CodeCedar icon"));
     eframe::run_native(
         "CodeCedar — Kedr",
         eframe::NativeOptions {

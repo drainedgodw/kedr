@@ -151,3 +151,26 @@ Platform-specific remapping semantics are unit-tested for both presets/platforms
 Physical macOS/Windows keyboards, Arch/Wayland, arbitrary compositor shortcuts,
 IME and assistive-technology acceptance remain open. The new workflow run must
 be checked separately before claiming remote acceptance of this revision.
+
+## Installation and logo revision (acceptance in progress)
+
+The preceding remap run `38364419721` completed successfully. This revision has
+95 local Rust workspace tests plus 18 Python installer tests. The two additional
+Rust tests cover delayed folder selection, duplicate suppression, cancellation
+and worker disconnection without blocking the UI. Clippy passes with warnings
+denied; catalog and generated shortcut checks pass.
+
+The actual Linux binary bundle was installed, reinstalled/upgraded, hash-verified
+and removed in isolated temporary HOME/XDG directories; all eight managed binary,
+launcher, desktop and icon files were exercised. Python tests also cover corruption,
+symlinks, ownership, partial-write rollback and preservation of user changes.
+The local selector is terminal-based, not a graphical Linux setup wizard.
+
+Windows wizard compile/silent install/upgrade/menu/icon/health/uninstall and genuine
+Arch makepkg/pacman acceptance are configured in CI but are not claimed successful
+until their run results are checked. Native-logo visual review is recorded after
+inspection separately. Physical Arch/Wayland portal behavior is not established by
+background-worker tests; the user-reported freeze requires target-machine recheck.
+
+All 33 product definitions/guides/logos are mechanically checked. Only CodeCedar
+can be application/installation-tested; the other 32 have no runnable backends.

@@ -67,6 +67,7 @@ struct Studio {
     frames: usize,
     state_applied: bool,
     capture_requested: bool,
+    capture_started: Option<std::time::Instant>,
     quit_allowed: bool,
 }
 impl Studio {
@@ -98,6 +99,7 @@ impl Studio {
             frames: 0,
             state_applied: false,
             capture_requested: false,
+            capture_started: None,
             quit_allowed: false,
         };
         if let Some(path) = project {
@@ -284,6 +286,7 @@ impl eframe::App for Studio {
         if self.options.capture.is_some() && ready && !self.state_applied {
             self.shell.capture_state(&self.options.state);
             self.state_applied = true;
+            self.capture_started = Some(std::time::Instant::now());
         }
         let effects = self.shell.show(ctx);
         self.effects(effects, ctx);
@@ -292,6 +295,9 @@ impl eframe::App for Studio {
                 && self.state_applied
                 && !self.shell.search_loading
                 && self.frames > 8
+                && self
+                    .capture_started
+                    .is_some_and(|t| t.elapsed() >= std::time::Duration::from_secs(1))
                 && !self.capture_requested
             {
                 ctx.send_viewport_cmd(ViewportCommand::Screenshot(egui::UserData::default()));
@@ -327,7 +333,10 @@ impl eframe::App for Studio {
                 self.quit_allowed = true;
                 ctx.send_viewport_cmd(ViewportCommand::Close);
             }
-            if self.frames > 220 {
+            if self
+                .capture_started
+                .is_some_and(|t| t.elapsed() > std::time::Duration::from_secs(20))
+            {
                 eprintln!("Capture deadline exceeded");
                 self.quit_allowed = true;
                 ctx.send_viewport_cmd(ViewportCommand::Close);

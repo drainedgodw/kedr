@@ -227,3 +227,171 @@ fn previous_find_wraps_and_does_not_mutate() {
     assert!(!e.find_previous(""));
     assert!(!e.cached_dirty);
 }
+
+#[test]
+fn line_comment_roundtrip_unicode_indentation_and_atomic_undo() {
+    let f = Fixture::new("  λ();\n\t树();\n\n");
+    let mut e = f.editor();
+    e.select_all();
+    e.toggle_comment().unwrap();
+    assert_eq!(
+        e.document
+            .buffer
+            .slice(0..e.document.buffer.len_bytes())
+            .unwrap(),
+        "  // λ();\n\t// 树();\n\n"
+    );
+    e.undo(false).unwrap();
+    assert_eq!(
+        e.document
+            .buffer
+            .slice(0..e.document.buffer.len_bytes())
+            .unwrap(),
+        "  λ();\n\t树();\n\n"
+    );
+    e.select_all();
+    e.toggle_comment().unwrap();
+    e.toggle_comment().unwrap();
+    assert_eq!(
+        e.document
+            .buffer
+            .slice(0..e.document.buffer.len_bytes())
+            .unwrap(),
+        "  λ();\n\t树();\n\n"
+    );
+}
+#[test]
+fn comments_exclude_next_line_at_selection_boundary_and_reject_unknown_syntax() {
+    let f = Fixture::new("a\nb\n");
+    let mut e = f.editor();
+    e.anchor = 0;
+    e.cursor = 2;
+    e.toggle_comment().unwrap();
+    assert_eq!(
+        e.document
+            .buffer
+            .slice(0..e.document.buffer.len_bytes())
+            .unwrap(),
+        "// a\nb\n"
+    );
+    e.document.path.set_extension("md");
+    let version = e.document.buffer.version();
+    assert!(e.toggle_comment().is_err());
+    assert_eq!(version, e.document.buffer.version());
+}
+#[test]
+fn python_comments_preserve_crlf_and_cursor_character_boundary() {
+    let f = Fixture::new("  树\r\n# leaf\r\n");
+    let mut e = f.editor();
+    e.document.path.set_extension("py");
+    e.select_all();
+    e.toggle_comment().unwrap();
+    assert_eq!(
+        e.document
+            .buffer
+            .slice(0..e.document.buffer.len_bytes())
+            .unwrap(),
+        "  # 树\r\n# # leaf\r\n"
+    );
+    assert!(e.document.buffer.is_char_boundary(e.cursor));
+    assert!(e.document.buffer.is_char_boundary(e.anchor));
+}
+#[test]
+fn moving_unicode_line_to_unterminated_eof_preserves_text_and_undo() {
+    let f = Fixture::new("λ\n树");
+    let mut e = f.editor();
+    e.set_cursor("λ".len(), false);
+    e.move_lines(true).unwrap();
+    assert_eq!(
+        e.document
+            .buffer
+            .slice(0..e.document.buffer.len_bytes())
+            .unwrap(),
+        "树\nλ"
+    );
+    assert_eq!(e.position(), (1, 1));
+    e.move_lines(false).unwrap();
+    assert_eq!(
+        e.document
+            .buffer
+            .slice(0..e.document.buffer.len_bytes())
+            .unwrap(),
+        "λ\n树"
+    );
+    e.undo(false).unwrap();
+    assert_eq!(
+        e.document
+            .buffer
+            .slice(0..e.document.buffer.len_bytes())
+            .unwrap(),
+        "树\nλ"
+    );
+}
+#[test]
+fn moving_selected_block_keeps_mixed_endings_and_selection() {
+    let f = Fixture::new("a\r\nb\nc\r\nd");
+    let mut e = f.editor();
+    e.anchor = 3;
+    e.cursor = 8;
+    e.move_lines(false).unwrap();
+    assert_eq!(
+        e.document
+            .buffer
+            .slice(0..e.document.buffer.len_bytes())
+            .unwrap(),
+        "b\nc\r\na\r\nd"
+    );
+    assert!(e.document.buffer.is_char_boundary(e.anchor));
+    assert!(e.document.buffer.is_char_boundary(e.cursor));
+    e.undo(false).unwrap();
+    assert_eq!(
+        e.document
+            .buffer
+            .slice(0..e.document.buffer.len_bytes())
+            .unwrap(),
+        "a\r\nb\nc\r\nd"
+    );
+}
+#[test]
+fn boundary_moves_and_join_at_eof_are_noops() {
+    let f = Fixture::new("only");
+    let mut e = f.editor();
+    let v = e.document.buffer.version();
+    e.move_lines(false).unwrap();
+    e.move_lines(true).unwrap();
+    e.join_lines().unwrap();
+    assert_eq!(v, e.document.buffer.version());
+    assert!(!e.cached_dirty);
+}
+#[test]
+fn join_trims_indent_preserves_unicode_and_is_single_undo_step() {
+    let f = Fixture::new("λ  \r\n\t 树\r\nleaf");
+    let mut e = f.editor();
+    e.join_lines().unwrap();
+    assert_eq!(
+        e.document
+            .buffer
+            .slice(0..e.document.buffer.len_bytes())
+            .unwrap(),
+        "λ 树\r\nleaf"
+    );
+    e.undo(false).unwrap();
+    assert_eq!(
+        e.document
+            .buffer
+            .slice(0..e.document.buffer.len_bytes())
+            .unwrap(),
+        "λ  \r\n\t 树\r\nleaf"
+    );
+}
+#[test]
+fn oversized_line_operations_fail_without_changes() {
+    let f = Fixture::new(&format!("{}\nsecond", "x".repeat(1024 * 1024 + 1)));
+    let mut e = f.editor();
+    let v = e.document.buffer.version();
+    assert!(e.toggle_comment().is_err());
+    assert!(e.move_lines(true).is_err());
+    assert!(e.join_lines().is_err());
+    assert_eq!(v, e.document.buffer.version());
+    assert!(!e.cached_dirty);
+}

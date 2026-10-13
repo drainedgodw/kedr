@@ -90,21 +90,21 @@ pub fn apply_theme(ctx: &Context, theme: Theme) {
         &mut v.widgets.hovered,
         &mut v.widgets.active,
     ] {
-        w.corner_radius = 8.into();
+        w.corner_radius = 4.into();
     }
     let mut style = (*ctx.style()).clone();
     style.visuals = v;
-    style.spacing.item_spacing = Vec2::new(8., 8.);
-    style.spacing.button_padding = Vec2::new(12., 8.);
-    style.spacing.interact_size = Vec2::new(44., 44.);
+    style.spacing.item_spacing = Vec2::new(6., 4.);
+    style.spacing.button_padding = Vec2::new(8., 4.);
+    style.spacing.interact_size = Vec2::new(28., 28.);
     for text in [TextStyle::Body, TextStyle::Button, TextStyle::Small] {
-        style.text_styles.insert(text, FontId::proportional(14.));
+        style.text_styles.insert(text, FontId::proportional(13.));
     }
     style
         .text_styles
         .insert(TextStyle::Monospace, FontId::monospace(15.));
     style
         .text_styles
-        .insert(TextStyle::Heading, FontId::proportional(24.));
+        .insert(TextStyle::Heading, FontId::proportional(20.));
     ctx.set_style(style);
 }

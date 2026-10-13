@@ -26,7 +26,7 @@ pub enum Icon {
 /// Shared single-line input with the same pointer target as other controls.
 pub(crate) fn singleline(text: &mut String) -> egui::TextEdit<'_> {
     egui::TextEdit::singleline(text)
-        .min_size(Vec2::new(0.0, 44.0))
+        .min_size(Vec2::new(0.0, 28.0))
         .vertical_align(egui::Align::Center)
 }
 
@@ -39,7 +39,7 @@ pub fn icon_button(
 ) -> egui::Response {
     let r = ui.add(
         egui::Button::new("")
-            .min_size(Vec2::splat(44.))
+            .min_size(Vec2::splat(32.))
             .fill(if selected {
                 p.accent_soft
             } else {

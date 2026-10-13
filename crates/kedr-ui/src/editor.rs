@@ -28,6 +28,9 @@ pub struct EditorCache {
     composing: bool,
 }
 impl EditorCache {
+    pub fn cached_rows(&self) -> usize {
+        self.lines.len()
+    }
     pub fn clear(&mut self) {
         self.version = None;
         self.lines.clear();
@@ -280,6 +283,10 @@ pub fn editor(
     ui.spacing_mut().item_spacing.y = 0.0;
     scroll.show_rows(ui, height, total, |ui, rows| {
         cache.painted_rows = rows.len();
+        // Keep nearby rows instead of flushing every cached galley at 256 rows.
+        // Scrolling away prunes distant entries; returning nearby reuses layout.
+        let keep = rows.start.saturating_sub(96)..rows.end.saturating_add(96);
+        cache.lines.retain(|row, _| keep.contains(row));
         for row in rows.clone() {
             cache
                 .lines
@@ -432,8 +439,5 @@ pub fn editor(
         }
     });
     ui.spacing_mut().item_spacing.y = spacing;
-    if cache.lines.len() > 256 {
-        cache.lines.clear();
-    }
     error
 }

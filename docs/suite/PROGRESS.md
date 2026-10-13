@@ -9,8 +9,9 @@
 - Shared native UI: explorer, tabs, palettes, two themes, settings and viewport
   rendering. Native host uses open-source egui/eframe/rfd, not a custom OS stack.
 - Original Studio release: 47 core + 14 workbench + 8 UI tests, 69 total; eleven
-  native UI states were locally inspected. Additional changes need new evidence. The current keyboard revision passes 93
-  local tests: 47 core + 18 workbench + 10 registry + 2 dialog + 15 UI + 1 preferences.
+  native UI states were locally inspected. Additional changes need new evidence. The preceding keyboard revision passed 93
+  local tests. The current desktop revision passes 105 Rust tests plus 18 Python
+  installer tests; the acceptance log records the scope and platform runs.
 - Windows/macOS tests and release artifacts succeeded in first Studio CI run.
   Linux compiled/tested successfully but capture lacked libxkbcommon-x11; the
   dependency correction was published separately. See validation for actual runs.
@@ -51,3 +52,17 @@ A reported folder-picker freeze exposed a blocking native dialog call on the
 render thread. Selection is now isolated on a dedicated worker with one pending
 dialog, cancellation/failure handling and generation checks for stale results.
 This fixes the architectural blockage; physical Wayland acceptance is still open.
+
+## Dense desktop / editing revision
+
+The header, explorer, controls and tab strip were compacted; File/Edit/Navigate/
+Search/View/Run menus expose implemented commands instead of placeholders. Four
+new actions add textual line comments, move-line/block up/down and join-next-line
+operations. All are editor-focus-only, discoverable/remappable, Unicode-safe and
+undoable. Comment syntax is explicit by extension, unsupported types fail visibly;
+large edits are bounded rather than flattening the entire document.
+
+The viewport layout cache now prunes distant rows while retaining nearby galleys
+instead of clearing everything after crossing 256 cached rows. A 100,000-line test
+exercises distant jumps and asserts limited painted/cached rows. No unmeasured
+percentage speedup or optimization of nonexistent product backends is claimed.

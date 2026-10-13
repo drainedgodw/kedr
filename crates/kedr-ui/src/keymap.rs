@@ -257,6 +257,24 @@ pub fn bindings(profile: Keymap, mac: bool) -> Vec<Binding> {
             ),
         ]),
     }
+    rows.extend([
+        (
+            ToggleComment,
+            c,
+            Key::Slash,
+            if mac { "Cmd /" } else { "Ctrl /" },
+            true,
+        ),
+        (MoveLineUp, a | s, Key::ArrowUp, "Alt Shift Up", true),
+        (MoveLineDown, a | s, Key::ArrowDown, "Alt Shift Down", true),
+        (
+            JoinLines,
+            c | s,
+            Key::J,
+            if mac { "Cmd Shift J" } else { "Ctrl Shift J" },
+            true,
+        ),
+    ]);
     rows.into_iter()
         .map(|(action, modifiers, key, hint, editor_only)| Binding {
             action,

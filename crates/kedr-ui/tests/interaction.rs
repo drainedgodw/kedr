@@ -408,3 +408,57 @@ fn invalid_stored_overrides_restore_safe_presets() {
     let c = Context::default();
     frame(&c, &mut s, vec![]);
 }
+
+#[test]
+fn comment_shortcut_respects_editor_and_search_focus() {
+    let f = Fixture::new("λ\n树");
+    let mut s = f.shell();
+    let c = Context::default();
+    s.editor_cache.focus_next = true;
+    frame(&c, &mut s, vec![]);
+    frame(&c, &mut s, vec![key(Key::Slash, Modifiers::COMMAND)]);
+    assert_eq!(
+        s.workspace
+            .as_ref()
+            .unwrap()
+            .active()
+            .unwrap()
+            .document
+            .buffer
+            .to_text(),
+        "// λ\n树"
+    );
+    s.action(Action::Find);
+    frame(&c, &mut s, vec![]);
+    frame(&c, &mut s, vec![key(Key::Slash, Modifiers::COMMAND)]);
+    assert_eq!(
+        s.workspace
+            .as_ref()
+            .unwrap()
+            .active()
+            .unwrap()
+            .document
+            .buffer
+            .to_text(),
+        "// λ\n树"
+    );
+}
+#[test]
+fn distant_scrolls_prune_layout_cache_without_painting_whole_file() {
+    let f = Fixture::new(&"let x=42;\n".repeat(100000));
+    let mut s = f.shell();
+    let c = Context::default();
+    for line in [1, 2000, 30000, 70000, 99990, 30000] {
+        s.workspace
+            .as_mut()
+            .unwrap()
+            .active_mut()
+            .unwrap()
+            .goto(line, 1)
+            .unwrap();
+        frame(&c, &mut s, vec![]);
+        frame(&c, &mut s, vec![]);
+        assert!(s.editor_cache.painted_rows < 80);
+        assert!(s.editor_cache.cached_rows() < 280);
+    }
+}

@@ -174,3 +174,28 @@ background-worker tests; the user-reported freeze requires target-machine rechec
 
 All 33 product definitions/guides/logos are mechanically checked. Only CodeCedar
 can be application/installation-tested; the other 32 have no runnable backends.
+
+## Installer acceptance checked / desktop revision 3
+
+Run 38400787062 completed genuine Arch makepkg compilation, workspace tests,
+pacman installation, desktop-entry validation, icon presence, installed --help
+and pacman removal successfully in an Arch container. Run 38401421884 completed
+Linux/Windows/macOS tests and release builds; Linux install/verify/uninstall and
+Windows NSIS compile/silent install/upgrade/Start-menu target+icon/health/uninstall
+steps succeeded. Windows short-vs-long path handling was corrected after the
+initial assertion failed; it still verifies the actual target and icon.
+
+All 34 revised logo cards were rendered and visually inspected individually;
+the gallery was checked at 1240x900 and 390x900. The first native capture pass
+exposed premature animation snapshots; captures now wait for one second after
+state setup. Branding was reviewed in native dark/light/welcome states.
+
+The next dense-desktop revision adds 8 workbench regressions plus 2 UI regressions,
+bringing the local Rust total to 105. These cover comment languages, Unicode,
+indentation, CRLF/mixed endings, selected blocks, boundary no-ops, single undo,
+oversized-edit refusal, actual focus dispatch and 100,000-line viewport/cache
+bounds. Clippy with denied warnings and the generated keymap/catalog checks pass.
+New native snapshots and remote jobs require separate review before claiming
+visual/CI acceptance for the dense layout. These are not LSP/refactoring/debugger
+parity tests. Physical Wayland portal and physical Windows setup GUI tests remain
+open; --help is a CLI health check, not a graphical application launch test.

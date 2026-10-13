@@ -15,6 +15,10 @@ The default profile is a **JetBrains-compatible subset**, not full keymap or fea
 | Select all / `edit.select_all` | Ctrl A | Cmd A | Ctrl A | Cmd A |
 | Duplicate line or selection / `edit.duplicate` | Ctrl D | Cmd D | Ctrl Shift D | Cmd Shift D |
 | Delete current line / `edit.delete_line` | Ctrl Y | Cmd Backspace | — | — |
+| Toggle line comment / `edit.comment` | Ctrl / | Cmd / | Ctrl / | Cmd / |
+| Move line or block up / `edit.move_up` | Alt Shift Up | Alt Shift Up | Alt Shift Up | Alt Shift Up |
+| Move line or block down / `edit.move_down` | Alt Shift Down | Alt Shift Down | Alt Shift Down | Alt Shift Down |
+| Join with next line / `edit.join_lines` | Ctrl Shift J | Cmd Shift J | Ctrl Shift J | Cmd Shift J |
 | Go to line / column / `navigation.line` | Ctrl G | Cmd L | Ctrl G | Cmd G |
 | Keyboard shortcuts / `settings.keymap` | — | — | — | — |
 | Open workspace / `workspace.open` | Ctrl O | Cmd O | Ctrl O | Cmd O |

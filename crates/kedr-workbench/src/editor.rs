@@ -335,6 +335,218 @@ impl EditorTab {
         self.set_cursor(at, false);
         Ok(())
     }
+    fn selected_lines(&self) -> (usize, usize) {
+        let range = self.selection();
+        let first = self
+            .document
+            .buffer
+            .byte_to_position(range.start)
+            .unwrap()
+            .0;
+        let (mut last, column) = self.document.buffer.byte_to_position(range.end).unwrap();
+        if !range.is_empty() && column == 0 {
+            last = last.saturating_sub(1);
+        }
+        (first, last)
+    }
+    fn apply_mapped_edits(&mut self, edits: Vec<Edit>) -> Result<(), String> {
+        if edits.is_empty() {
+            return Ok(());
+        }
+        let map = |point: usize| {
+            let mut shift = 0isize;
+            for edit in &edits {
+                if point < edit.range.start {
+                    break;
+                }
+                if point < edit.range.end {
+                    return edit.range.start.saturating_add_signed(shift) + edit.replacement.len();
+                }
+                shift += edit.replacement.len() as isize - edit.range.len() as isize;
+            }
+            point.saturating_add_signed(shift)
+        };
+        let (cursor, anchor) = (map(self.cursor), map(self.anchor));
+        self.document
+            .buffer
+            .apply_batch(&EditBatch::new(&self.document.buffer.snapshot(), edits))
+            .map_err(|e| e.to_string())?;
+        self.set_cursor(cursor, false);
+        self.anchor = anchor.min(self.document.buffer.len_bytes());
+        while !self.document.buffer.is_char_boundary(self.anchor) {
+            self.anchor -= 1;
+        }
+        self.cached_dirty = true;
+        Ok(())
+    }
+    /// Toggle textual line comments; this is not semantic language analysis.
+    pub fn toggle_comment(&mut self) -> Result<(), String> {
+        let ext = self
+            .document
+            .path
+            .extension()
+            .and_then(|v| v.to_str())
+            .unwrap_or("");
+        let prefix = match ext {
+            "rs" | "c" | "cpp" | "cc" | "h" | "hpp" | "js" | "jsx" | "ts" | "tsx" | "java"
+            | "kt" | "go" | "cs" | "php" | "swift" => "//",
+            "py" | "rb" | "sh" | "bash" | "toml" | "yaml" | "yml" | "conf" => "#",
+            "sql" | "lua" => "--",
+            _ => return Err("No line-comment syntax for this file type".into()),
+        };
+        let (first, last) = self.selected_lines();
+        if last - first >= 4096 {
+            return Err("Comment at most 4096 lines at a time".into());
+        }
+        if self.line_bounds(last).end - self.line_bounds(first).start > 1024 * 1024 {
+            return Err("Comment at most 1 MiB of text at a time".into());
+        }
+        let mut lines = Vec::new();
+        for row in first..=last {
+            let bounds = self.line_bounds(row);
+            if bounds.len() > 1024 * 1024 {
+                return Err("Commenting a line over 1 MiB is not supported".into());
+            }
+            let text = self
+                .document
+                .buffer
+                .slice(bounds.clone())
+                .map_err(|e| e.to_string())?;
+            let indent = text
+                .bytes()
+                .take_while(|b| *b == b' ' || *b == b'\t')
+                .count();
+            if !text[indent..].trim().is_empty() {
+                lines.push((bounds.start + indent, text[indent..].to_owned()));
+            }
+        }
+        let remove = !lines.is_empty() && lines.iter().all(|(_, t)| t.starts_with(prefix));
+        let edits = lines
+            .into_iter()
+            .map(|(at, text)| {
+                if remove {
+                    let count = prefix.len() + usize::from(text[prefix.len()..].starts_with(' '));
+                    Edit {
+                        range: at..at + count,
+                        replacement: String::new(),
+                    }
+                } else {
+                    Edit {
+                        range: at..at,
+                        replacement: format!("{prefix} "),
+                    }
+                }
+            })
+            .collect();
+        self.apply_mapped_edits(edits)
+    }
+    /// Move the current line or selected complete line block by one row.
+    pub fn move_lines(&mut self, down: bool) -> Result<(), String> {
+        let (first, last) = self.selected_lines();
+        let count = self.document.buffer.line_count();
+        if (!down && first == 0) || (down && last + 1 >= count) {
+            return Ok(());
+        }
+        let start = self.line_bounds(first).start;
+        let block_end = if last + 1 < count {
+            self.line_bounds(last + 1).start
+        } else {
+            self.document.buffer.len_bytes()
+        };
+        let (left_start, split, right_end) = if down {
+            (
+                start,
+                block_end,
+                if last + 2 < count {
+                    self.line_bounds(last + 2).start
+                } else {
+                    self.document.buffer.len_bytes()
+                },
+            )
+        } else {
+            (self.line_bounds(first - 1).start, start, block_end)
+        };
+        if right_end - left_start > 1024 * 1024 {
+            return Err("Move at most 1 MiB of text at a time".into());
+        }
+        let left = self
+            .document
+            .buffer
+            .slice(left_start..split)
+            .map_err(|e| e.to_string())?;
+        let right = self
+            .document
+            .buffer
+            .slice(split..right_end)
+            .map_err(|e| e.to_string())?;
+        fn content_and_ending(s: &str) -> (&str, &str) {
+            if let Some(t) = s.strip_suffix("\r\n") {
+                (t, "\r\n")
+            } else if let Some(t) = s.strip_suffix('\n') {
+                (t, "\n")
+            } else {
+                (s, "")
+            }
+        }
+        let (left_content, left_ending) = content_and_ending(&left);
+        let (right_content, right_ending) = content_and_ending(&right);
+        let replacement = format!("{right_content}{left_ending}{left_content}{right_ending}");
+        let new_start = if down {
+            left_start + right_content.len() + left_ending.len()
+        } else {
+            left_start
+        };
+        let cursor = new_start + self.cursor.saturating_sub(start);
+        let anchor = new_start + self.anchor.saturating_sub(start);
+        self.document
+            .buffer
+            .replace(left_start..right_end, &replacement)
+            .map_err(|e| e.to_string())?;
+        self.set_cursor(cursor.min(right_end), false);
+        self.anchor = anchor.min(self.document.buffer.len_bytes());
+        while !self.document.buffer.is_char_boundary(self.anchor) {
+            self.anchor -= 1;
+        }
+        self.cached_dirty = true;
+        Ok(())
+    }
+    pub fn join_lines(&mut self) -> Result<(), String> {
+        let row = self.position().0;
+        if row + 1 >= self.document.buffer.line_count() {
+            return Ok(());
+        }
+        let current = self.line_bounds(row);
+        let next = self.line_bounds(row + 1);
+        // Bound work on pathological long lines rather than flattening the document.
+        if current.len() + next.len() > 1024 * 1024 {
+            return Err("Join at most 1 MiB of text at a time".into());
+        }
+        let left = self
+            .document
+            .buffer
+            .slice(current.clone())
+            .map_err(|e| e.to_string())?;
+        let right = self
+            .document
+            .buffer
+            .slice(next.clone())
+            .map_err(|e| e.to_string())?;
+        let left_trimmed = left.trim_end_matches([' ', '\t', '\r']);
+        let indent = right
+            .bytes()
+            .take_while(|b| *b == b' ' || *b == b'\t')
+            .count();
+        let space = if left_trimmed.is_empty() || right[indent..].trim().is_empty() {
+            ""
+        } else {
+            " "
+        };
+        self.apply_mapped_edits(vec![Edit {
+            range: current.start + left_trimmed.len()..next.start + indent,
+            replacement: space.into(),
+        }])
+    }
+
     pub fn duplicate(&mut self) -> Result<(), String> {
         if self.cursor != self.anchor {
             let range = self.selection();

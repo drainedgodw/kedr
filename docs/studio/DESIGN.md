@@ -35,6 +35,8 @@ themes, palette/settings/search/trust/unsaved/error/welcome states. This is not 
 mobile application or browser mock. Native folder-picking and actual OS-level IME/
 screen-reader usage still require manual checks on target machines.
 
-Ordinary controls have 44-pixel interaction targets and accessible names. The custom
+Desktop revision 3 uses 28-pixel ordinary controls, 32-pixel icon targets, a
+44-pixel header and 28-pixel explorer rows with accessible names. This density is
+intended for mouse/keyboard desktop work, not touch-first usage. The custom
 editor is one large keyboard/pointer target with clipboard/composition events;
 complete assistive text semantics are a later release gate, not an asserted feature.

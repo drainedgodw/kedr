@@ -15,6 +15,9 @@ A native, local-first development workspace built on the Kedr Rust text core.
 - Explicit save, external-change refusal, unsaved-change guards for close/switch/quit.
 - Real Cargo check/test output, only after explicit project trust/confirmation.
 - Native folder picker, recent workspaces and appearance preferences.
+- Dense desktop shell with File / Edit / Navigate / Search / View / Run menus.
+- Line comments, selected-line-block movement and joining the next line, with
+  atomic undo, bounded edits, UTF-8 safety and both keyboard profiles.
 
 CodeCedar is the product name of the existing Kedr Studio preview. The current
 binary/package remains `kedr-studio` for compatibility; it is not a second app.

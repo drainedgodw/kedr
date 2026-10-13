@@ -9,7 +9,7 @@ impl Shell {
         egui::SidePanel::left("kedr-sidebar")
             .default_width(width)
             .width_range(220.0..=420.0)
-            .frame(egui::Frame::new().fill(p.surface).inner_margin(16))
+            .frame(egui::Frame::new().fill(p.surface).inner_margin(10))
             .show(ctx, |ui| {
                 ui.label(
                     RichText::new(if pane == Pane::Files {
@@ -20,7 +20,7 @@ impl Shell {
                     .color(p.muted)
                     .strong(),
                 );
-                ui.add_space(12.);
+                ui.add_space(6.);
                 if pane == Pane::Files {
                     let r = ui.add(
                         singleline(&mut self.file_filter)
@@ -49,7 +49,7 @@ impl Shell {
                     let mut folder = None;
                     egui::ScrollArea::vertical().id_salt("file-tree").show_rows(
                         ui,
-                        44.,
+                        28.,
                         self.nav.len(),
                         |ui, rows| {
                             for i in rows {
@@ -62,7 +62,7 @@ impl Shell {
                                         egui::Button::new("")
                                             .selected(selected)
                                             .frame(selected)
-                                            .min_size(Vec2::new(ui.available_width(), 44.)),
+                                            .min_size(Vec2::new(ui.available_width(), 28.)),
                                     );
                                     if e.folder {
                                         let center =
@@ -92,7 +92,7 @@ impl Shell {
                                     let text = ui.fonts_mut(|f| {
                                         f.layout_no_wrap(
                                             label.clone(),
-                                            FontId::proportional(14.0),
+                                            FontId::proportional(13.0),
                                             if selected { p.accent } else { p.text },
                                         )
                                     });
@@ -240,7 +240,7 @@ impl Shell {
         let compact = ui.available_width() < 600.;
         egui::Frame::new()
             .fill(p.surface)
-            .inner_margin(12)
+            .inner_margin(6)
             .show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
                     let r = ui.add(
@@ -306,7 +306,7 @@ impl Shell {
             .default_height(220.)
             .height_range(140.0..=420.0)
             .resizable(true)
-            .frame(egui::Frame::new().fill(p.surface).inner_margin(16))
+            .frame(egui::Frame::new().fill(p.surface).inner_margin(10))
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.label(RichText::new("OUTPUT").strong().color(p.muted));

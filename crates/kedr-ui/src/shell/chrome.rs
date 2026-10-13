@@ -2,55 +2,119 @@ use super::*;
 impl Shell {
     pub(super) fn header(&mut self, ctx: &Context, p: Palette) {
         egui::TopBottomPanel::top("kedr-header")
-            .exact_height(64.)
-            .frame(egui::Frame::new().fill(p.surface).inner_margin(8))
+            .exact_height(44.)
+            .frame(egui::Frame::new().fill(p.surface).inner_margin(6))
             .show(ctx, |ui| {
                 ui.horizontal_centered(|ui| {
                     wordmark(ui, p);
-                    ui.add_space(12.);
-                    ui.menu_button("File", |ui| {
-                        for a in [
-                            Action::OpenProject,
-                            Action::Save,
-                            Action::SaveAll,
-                            Action::CloseTab,
-                        ] {
-                            if ui
-                                .button(format!("{}    {}", a.label(), self.shortcut(a)))
-                                .clicked()
-                            {
-                                self.action(a);
-                                ui.close();
+                    ui.add_space(6.);
+                    for (title, actions) in [
+                        (
+                            "File",
+                            &[
+                                Action::OpenProject,
+                                Action::Save,
+                                Action::SaveAll,
+                                Action::CloseTab,
+                            ][..],
+                        ),
+                        (
+                            "Edit",
+                            &[
+                                Action::Undo,
+                                Action::Redo,
+                                Action::SelectAll,
+                                Action::Duplicate,
+                                Action::DeleteLine,
+                                Action::ToggleComment,
+                                Action::MoveLineUp,
+                                Action::MoveLineDown,
+                                Action::JoinLines,
+                            ][..],
+                        ),
+                        (
+                            "Navigate",
+                            &[
+                                Action::QuickOpen,
+                                Action::GoToLine,
+                                Action::NextTab,
+                                Action::PreviousTab,
+                            ][..],
+                        ),
+                        (
+                            "Search",
+                            &[
+                                Action::Find,
+                                Action::Replace,
+                                Action::FindNext,
+                                Action::FindPrevious,
+                                Action::Search,
+                            ][..],
+                        ),
+                        (
+                            "View",
+                            &[
+                                Action::Project,
+                                Action::Sidebar,
+                                Action::Output,
+                                Action::Settings,
+                                Action::Keybindings,
+                                Action::Commands,
+                            ][..],
+                        ),
+                        ("Run", &[Action::Check, Action::Test][..]),
+                    ] {
+                        ui.menu_button(title, |ui| {
+                            for &action in actions {
+                                let needs_editor = matches!(
+                                    action,
+                                    Action::Save
+                                        | Action::CloseTab
+                                        | Action::Undo
+                                        | Action::Redo
+                                        | Action::SelectAll
+                                        | Action::Duplicate
+                                        | Action::DeleteLine
+                                        | Action::ToggleComment
+                                        | Action::MoveLineUp
+                                        | Action::MoveLineDown
+                                        | Action::JoinLines
+                                );
+                                let enabled = !needs_editor
+                                    || self
+                                        .workspace
+                                        .as_ref()
+                                        .and_then(Workspace::active)
+                                        .is_some();
+                                if ui
+                                    .add_enabled(
+                                        enabled,
+                                        egui::Button::new(format!(
+                                            "{}    {}",
+                                            action.label(),
+                                            self.shortcut(action)
+                                        )),
+                                    )
+                                    .clicked()
+                                {
+                                    self.action(action);
+                                    ui.close();
+                                    self.editor_cache.focus_next = needs_editor;
+                                }
                             }
-                        }
-                    });
-                    ui.menu_button("Edit", |ui| {
-                        for a in [
-                            Action::Undo,
-                            Action::Redo,
-                            Action::Find,
-                            Action::Replace,
-                            Action::Search,
-                            Action::GoToLine,
-                            Action::Keybindings,
-                        ] {
-                            if ui
-                                .button(format!("{}    {}", a.label(), self.shortcut(a)))
-                                .clicked()
-                            {
-                                self.action(a);
-                                ui.close();
-                            }
-                        }
-                    });
-                    ui.add_space(12.);
-                    let name = self
-                        .workspace
-                        .as_ref()
-                        .map_or("CodeCedar".into(), Workspace::name);
-                    let short: String = name.chars().take(24).collect();
-                    ui.label(RichText::new(short).color(p.muted))
+                        });
+                    }
+                    if ctx.content_rect().width() > 1100. {
+                        ui.add_space(8.);
+                        let name = self
+                            .workspace
+                            .as_ref()
+                            .map_or("CodeCedar".into(), Workspace::name);
+                        ui.label(
+                            RichText::new(name.chars().take(20).collect::<String>()).color(p.muted),
+                        )
                         .on_hover_text(name);
+                    }
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         let cargo_project = self.workspace.as_ref().is_some_and(|w| {
                             w.project.files.contains(&w.project.root.join("Cargo.toml"))
@@ -59,7 +123,7 @@ impl Shell {
                             .add_enabled(
                                 cargo_project,
                                 egui::Button::new(RichText::new("Check").strong())
-                                    .min_size(Vec2::new(88., 44.))
+                                    .min_size(Vec2::new(70., 28.))
                                     .fill(p.accent_soft),
                             )
                             .on_hover_text(format!(
@@ -71,15 +135,15 @@ impl Shell {
                             self.action(Action::Check);
                         }
                         let wide = ctx.content_rect().width() > 1150.;
-                        let label = format!(
-                            "{} · {}",
-                            if wide { "Go to file" } else { "Files" },
-                            self.shortcut(Action::QuickOpen)
-                        );
+                        let label = if wide {
+                            format!("Go to file · {}", self.shortcut(Action::QuickOpen))
+                        } else {
+                            "Files".into()
+                        };
                         if ui
                             .add(
                                 egui::Button::new(RichText::new(label).color(p.muted))
-                                    .min_size(Vec2::new(if wide { 310. } else { 180. }, 44.)),
+                                    .min_size(Vec2::new(if wide { 230. } else { 80. }, 28.)),
                             )
                             .clicked()
                         {
@@ -91,11 +155,11 @@ impl Shell {
     }
     pub(super) fn status_bar(&mut self, ctx: &Context, p: Palette) {
         egui::TopBottomPanel::bottom("kedr-status")
-            .exact_height(34.)
+            .exact_height(26.)
             .frame(
                 egui::Frame::new()
                     .fill(p.surface)
-                    .inner_margin(egui::Margin::symmetric(16, 4)),
+                    .inner_margin(egui::Margin::symmetric(12, 1)),
             )
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
@@ -120,9 +184,9 @@ impl Shell {
     }
     pub(super) fn activity(&mut self, ctx: &Context, p: Palette) {
         egui::SidePanel::left("kedr-activity")
-            .exact_width(64.)
+            .exact_width(44.)
             .resizable(false)
-            .frame(egui::Frame::new().fill(p.surface).inner_margin(10))
+            .frame(egui::Frame::new().fill(p.surface).inner_margin(6))
             .show(ctx, |ui| {
                 for (kind, label, pane) in [
                     (Icon::Files, "Files", Pane::Files),
@@ -200,7 +264,7 @@ impl Shell {
         let mut close = None;
         egui::Frame::new()
             .fill(p.surface)
-            .inner_margin(egui::Margin::symmetric(12, 0))
+            .inner_margin(egui::Margin::symmetric(6, 0))
             .show(ui, |ui| {
                 egui::ScrollArea::horizontal()
                     .id_salt("open-tabs")
@@ -223,7 +287,7 @@ impl Shell {
                                                     p.muted
                                                 }),
                                             )
-                                            .min_size(Vec2::new(100., 44.))
+                                            .min_size(Vec2::new(90., 30.))
                                             .fill(
                                                 if selected {
                                                     p.canvas

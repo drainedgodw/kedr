@@ -24,6 +24,10 @@ pub enum Action {
     SelectAll,
     Duplicate,
     DeleteLine,
+    ToggleComment,
+    MoveLineUp,
+    MoveLineDown,
+    JoinLines,
     GoToLine,
     Keybindings,
     OpenProject,
@@ -43,7 +47,7 @@ pub enum Action {
     Settings,
 }
 impl Action {
-    pub const ALL: [Self; 26] = [
+    pub const ALL: [Self; 30] = [
         Self::Project,
         Self::Replace,
         Self::FindNext,
@@ -53,6 +57,10 @@ impl Action {
         Self::SelectAll,
         Self::Duplicate,
         Self::DeleteLine,
+        Self::ToggleComment,
+        Self::MoveLineUp,
+        Self::MoveLineDown,
+        Self::JoinLines,
         Self::GoToLine,
         Self::Keybindings,
         Self::OpenProject,
@@ -82,6 +90,10 @@ impl Action {
             Self::SelectAll => "Select all",
             Self::Duplicate => "Duplicate line or selection",
             Self::DeleteLine => "Delete current line",
+            Self::ToggleComment => "Toggle line comment",
+            Self::MoveLineUp => "Move line or block up",
+            Self::MoveLineDown => "Move line or block down",
+            Self::JoinLines => "Join with next line",
             Self::GoToLine => "Go to line / column",
             Self::Keybindings => "Keyboard shortcuts",
             Self::OpenProject => "Open workspace",
@@ -127,6 +139,10 @@ impl Action {
             Self::SelectAll => "edit.select_all",
             Self::Duplicate => "edit.duplicate",
             Self::DeleteLine => "edit.delete_line",
+            Self::ToggleComment => "edit.comment",
+            Self::MoveLineUp => "edit.move_up",
+            Self::MoveLineDown => "edit.move_down",
+            Self::JoinLines => "edit.join_lines",
             Self::GoToLine => "navigation.line",
             Self::Keybindings => "settings.keymap",
         }
@@ -403,7 +419,13 @@ impl Shell {
                     self.editor_cache.focus_next = true;
                 }
             }
-            Action::SelectAll | Action::Duplicate | Action::DeleteLine => {
+            Action::SelectAll
+            | Action::Duplicate
+            | Action::DeleteLine
+            | Action::ToggleComment
+            | Action::MoveLineUp
+            | Action::MoveLineDown
+            | Action::JoinLines => {
                 if let Some(t) = self.workspace.as_mut().and_then(Workspace::active_mut) {
                     let result = match a {
                         Action::SelectAll => {
@@ -411,6 +433,10 @@ impl Shell {
                             Ok(())
                         }
                         Action::Duplicate => t.duplicate(),
+                        Action::ToggleComment => t.toggle_comment(),
+                        Action::MoveLineUp => t.move_lines(false),
+                        Action::MoveLineDown => t.move_lines(true),
+                        Action::JoinLines => t.join_lines(),
                         _ => t.delete_line(),
                     };
                     if let Err(e) = result {
@@ -685,7 +711,7 @@ impl Shell {
                         )
                         .on_hover_text(relative);
                     });
-                    ui.add_space(8.);
+                    ui.add_space(2.);
                     if let Some(e) = editor(
                         ui,
                         tab,

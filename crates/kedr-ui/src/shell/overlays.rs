@@ -390,6 +390,11 @@ impl Shell {
                 };
                 self.record_shortcut = state == "remap-record";
             }
+            "problems" | "output" => {
+                self.settings.show_output = true;
+                self.problems_view = state == "problems";
+                self.task = Some(TaskRunner::capture_fixture());
+            }
             "goto" => self.action(Action::GoToLine),
             "find" => self.action(Action::Replace),
             "trust" => self.action(Action::Check),

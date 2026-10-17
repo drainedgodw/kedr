@@ -237,3 +237,30 @@ are not implemented or validated by this work. Physical Arch/Wayland portal
 behavior, real Windows setup-wizard interaction, code signing and AUR publication
 remain outside the confirmed acceptance scope. HTML is the optional brand gallery,
 not the native application's runtime.
+
+## Structured Cargo diagnostics — local acceptance
+
+The diagnostics revision adds a real Cargo-check-to-source workflow, not LSP.
+Local acceptance passed 116 Rust workspace tests (including a real rustc E0425
+integration test), 18 Python installer tests, formatting, warnings-denied Clippy,
+catalog and generated-keymap checks, and a native debug build. No new performance
+comparison with JetBrains or current cross-platform installer acceptance is
+claimed by these local checks.
+
+Problems, compact Problems and light Problems captures were regenerated from the
+accepted binary and individually inspected at actual 1440x900, 900x640 and
+1440x900 dimensions. The Output scene was also individually inspected at 900x640.
+Rows are left aligned and remain inside the panel; long compact messages elide
+with full text available on hover. Screenshot diagnostics are explicitly labeled
+capture fixtures, not evidence of a live compiler run. The integration test is
+the separate live-compiler evidence. CI now requests a 1600x1000 Xvfb screen so
+1440-wide captures are not silently limited to 1280 pixels. Four scenes extend
+the capture matrix from 23 to 27; the unchanged 23 states were not all re-reviewed
+locally in this diagnostics pass.
+
+The parser handles split UTF-8/JSON, malformed input, bounded records and report
+sizes. Source navigation rejects dirty buffers and paths outside the scanned
+workspace, including escaping symlinks. Saved edits or external changes after a
+check can still make locations stale: save and rerun check. Cargo Test remains
+console based. Cancellation targets the Cargo child and is not a process-tree
+sandbox. See DIAGNOSTICS.md for scope and limits.

@@ -395,3 +395,37 @@ fn oversized_line_operations_fail_without_changes() {
     assert_eq!(v, e.document.buffer.version());
     assert!(!e.cached_dirty);
 }
+
+#[test]
+fn failing_cargo_check_exposes_real_source_diagnostic() {
+    let f = Fixture::new("fn main() { missing_kedr_name(); }\n");
+    fs::write(f.0.join("Cargo.toml"), "[package]\nname='kedr-error-fixture'\nversion='0.1.0'\nedition='2024'\n[[bin]]\nname='fixture'\npath='main.rs'\n[workspace]\n").unwrap();
+    let task = TaskRunner::start(&f.0, TaskKind::Check, || {}).unwrap();
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let report = task.diagnostics();
+        if task.phase() != TaskPhase::Running && !report.items.is_empty() {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "Compiler task or diagnostic pipe did not finish: {:?}",
+            task.phase()
+        );
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    assert!(matches!(task.phase(), TaskPhase::Failed(_)));
+    let report = task.diagnostics();
+    let d = report
+        .items
+        .iter()
+        .find(|d| d.code.as_deref() == Some("E0425"))
+        .expect("rustc E0425");
+    let location = d.location.as_ref().unwrap();
+    assert_eq!(location.line, 1);
+    assert_eq!(
+        location.resolve(&f.0).unwrap(),
+        f.0.join("main.rs").canonicalize().unwrap()
+    );
+    assert!(task.output().contains("missing_kedr_name"));
+}

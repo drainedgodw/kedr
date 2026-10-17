@@ -1561,6 +1561,7 @@ name = "kedr-workbench"
 version = "0.1.0"
 dependencies = [
  "kedr-core",
+ "serde_json",
 ]
 
 [[package]]

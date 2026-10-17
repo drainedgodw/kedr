@@ -302,58 +302,84 @@ impl Shell {
         }
     }
     pub(super) fn output(&mut self, ctx: &Context, p: Palette) {
+        let mut selected = None;
         egui::TopBottomPanel::bottom("kedr-output")
             .default_height(220.)
             .height_range(140.0..=420.0)
             .resizable(true)
-            .frame(egui::Frame::new().fill(p.surface).inner_margin(10))
+            .frame(egui::Frame::new().fill(p.surface).inner_margin(8))
             .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label(RichText::new("OUTPUT").strong().color(p.muted));
+                ui.horizontal_wrapped(|ui| {
+                    if ui.selectable_label(self.problems_view, "Problems").clicked() {
+                        self.problems_view = true;
+                    }
+                    if ui.selectable_label(!self.problems_view, "Output").clicked() {
+                        self.problems_view = false;
+                    }
                     if let Some(t) = &self.task {
                         ui.label(t.kind.label());
                         let phase = t.phase();
                         ui.label(match &phase {
-                            TaskPhase::Running => "Running",
+                            TaskPhase::Running => "Running…",
                             TaskPhase::Success => "Succeeded",
                             TaskPhase::Failed(_) => "Failed",
                             TaskPhase::Stopped => "Stopped",
                             TaskPhase::Error(_) => "Could not start",
-                        })
-                        .on_hover_text(format!("{phase:?}"));
-                        if phase == TaskPhase::Running && ui.button("Stop").clicked() {
-                            t.stop();
-                        }
+                        }).on_hover_text(format!("{phase:?}"));
+                        if phase == TaskPhase::Running && ui.button("Stop").clicked() { t.stop(); }
                     }
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        if ui.button("Hide").clicked() {
-                            self.settings.show_output = false;
-                        }
-                        if ui.button("Test").clicked() {
-                            self.action(Action::Test);
-                        }
-                    });
+                    if ui.button("Check").clicked() { self.action(Action::Check); }
+                    if ui.button("Hide").clicked() { self.settings.show_output = false; }
                 });
+                ui.separator();
                 if let Some(t) = &self.task {
-                    let mut output = t.output();
-                    egui::ScrollArea::both()
-                        .stick_to_bottom(true)
-                        .show(ui, |ui| {
-                            ui.add(
-                                egui::TextEdit::multiline(&mut output)
-                                    .font(FontId::monospace(14.))
-                                    .interactive(false)
-                                    .desired_width(f32::INFINITY),
-                            );
+                    if self.problems_view {
+                        let report = t.diagnostics();
+                        let errors = report.items.iter().filter(|d| d.level == "error").count();
+                        let warnings = report.items.len() - errors;
+                        ui.label(RichText::new(format!("{errors} {} · {warnings} {} · saved sources", if errors == 1 { "error" } else { "errors" }, if warnings == 1 { "warning" } else { "warnings" })).color(p.muted));
+                        if report.limited { ui.label("Results limited: oversized records or more than 1,000 diagnostics."); }
+                        if report.items.is_empty() {
+                            ui.label(if t.kind == TaskKind::Test { "Test results are in Output; run Check for compiler diagnostics." }
+                                else if t.phase() == TaskPhase::Running { "Waiting for compiler diagnostics…" }
+                                else if t.phase() == TaskPhase::Success { "No compiler errors or warnings reported." }
+                                else { "No structured diagnostics received. See Output for the failure details." });
+                        }
+                        egui::ScrollArea::both().id_salt("problems-scroll").show_rows(ui, 28., report.items.len(), |ui, range| {
+                            for i in range {
+                                let d = &report.items[i];
+                                let location = d.location.as_ref().map(|l| format!("{}:{}:{}", l.file.display(), l.line, l.column)).unwrap_or_else(|| "No source location".into());
+                                let label = format!("{} {}  {}  —  {}", d.level, d.code.as_deref().unwrap_or(""), location, d.message.replace(['\n', '\r'], " "));
+                                let width = ui.available_width().max(200.);
+                                let r = ui.add(egui::Button::new("").frame(false).min_size(Vec2::new(width, 28.)));
+                                r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, ui.is_enabled(), &label));
+                                let color = if d.level == "warning" { p.amber } else { p.text };
+                                let mut job = egui::text::LayoutJob::simple_singleline(label, FontId::proportional(13.), color);
+                                job.wrap.max_width = (r.rect.width() - 16.).max(1.);
+                                job.wrap.max_rows = 1;
+                                let galley = ui.fonts_mut(|fonts| fonts.layout_job(job));
+                                let at = egui::pos2(r.rect.left() + 8., r.rect.center().y - galley.size().y / 2.);
+                                ui.painter().with_clip_rect(r.rect).galley(at, galley, color);
+                                let clicked = r.clicked();
+                                r.on_hover_text(format!("{}\n{}\nPositions refer to saved files. Save changes and rerun Check if sources changed.", d.message, location));
+                                if clicked && let Some(l) = &d.location { selected = Some(l.clone()); }
+                            }
                         });
+                    } else {
+                        let mut output = t.output();
+                        egui::ScrollArea::both().id_salt("output-scroll").stick_to_bottom(true).show(ui, |ui| {
+                            ui.add(egui::TextEdit::multiline(&mut output).font(FontId::monospace(13.)).interactive(false).desired_width(f32::INFINITY));
+                        });
+                        ui.label(RichText::new("Console tail limited to 256 KiB. Cargo Test uses console output.").color(p.muted));
+                    }
                 } else {
-                    ui.label("Run Cargo check or Cargo test to see real process output here.");
-                    ui.label(
-                        RichText::new("No project code runs until you explicitly allow it.")
-                            .color(p.muted),
-                    );
+                    ui.label("Run Check to collect compiler errors and warnings, then select a problem to open its source.");
+                    ui.label(RichText::new("No project code runs until you explicitly allow it.").color(p.muted));
                 }
             });
+        if let Some(location) = selected {
+            self.navigate_diagnostic(location);
+        }
     }
     pub(super) fn welcome(&mut self, ui: &mut egui::Ui, p: Palette) {
         ui.add_space(ui.available_height() * 0.14);

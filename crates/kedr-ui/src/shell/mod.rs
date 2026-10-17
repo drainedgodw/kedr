@@ -7,7 +7,8 @@ use crate::{
 use egui::{Align, Align2, Color32, Context, FontId, Id, Key, Layout, Modifiers, RichText, Vec2};
 use kedr_core::document::Document;
 use kedr_workbench::{
-    FileNode, SearchHit, SearchReport, TaskKind, TaskPhase, TaskRunner, Workspace,
+    DiagnosticLocation, FileNode, SearchHit, SearchReport, TaskKind, TaskPhase, TaskRunner,
+    Workspace,
 };
 use std::{
     collections::BTreeSet,
@@ -246,6 +247,8 @@ pub struct Shell {
     error: Option<String>,
     trusted: bool,
     pending_hit: Option<SearchHit>,
+    pending_diagnostic: Option<DiagnosticLocation>,
+    problems_view: bool,
     active_path: Option<PathBuf>,
 }
 impl Shell {
@@ -299,6 +302,8 @@ impl Shell {
                 .map(|e| format!("Invalid custom shortcuts; presets restored: {e}")),
             trusted: false,
             pending_hit: None,
+            pending_diagnostic: None,
+            problems_view: true,
             active_path: None,
         }
     }
@@ -309,6 +314,8 @@ impl Shell {
         self.workspace = Some(w);
         self.trusted = false;
         self.task = None;
+        self.pending_diagnostic = None;
+        self.pending_hit = None;
         self.loading = false;
         self.search_report = None;
         self.search_loading = false;
@@ -351,7 +358,46 @@ impl Shell {
         }
         found
     }
+    pub fn set_task(&mut self, task: TaskRunner) {
+        self.problems_view = task.kind == TaskKind::Check;
+        self.pending_diagnostic = None;
+        self.task = Some(task);
+        self.settings.show_output = true;
+    }
+    pub fn navigate_diagnostic(&mut self, location: DiagnosticLocation) {
+        let Some(w) = &mut self.workspace else {
+            return;
+        };
+        // Diagnostics describe saved files; never silently move an edited buffer using stale positions.
+        if w.dirty_count() > 0 {
+            self.error("Save your edits and rerun Cargo check before navigating diagnostics");
+            return;
+        }
+        let Some(path) = location
+            .resolve(&w.project.root)
+            .filter(|p| w.project.files.contains(p))
+        else {
+            self.error("Diagnostic source is outside the scanned workspace or no longer exists");
+            return;
+        };
+        self.pending_hit = None;
+        self.pending_diagnostic = Some(DiagnosticLocation {
+            file: path.clone(),
+            ..location
+        });
+        self.effects.push(Effect::OpenFile(path));
+    }
     fn finish_navigation(&mut self) {
+        if let Some(location) = &self.pending_diagnostic
+            && let Some(tab) = self.workspace.as_mut().and_then(Workspace::active_mut)
+            && tab.document.path == location.file
+        {
+            let result = tab.goto(location.line, location.column);
+            self.pending_diagnostic = None;
+            if let Err(e) = result {
+                self.error(e);
+            }
+        }
         if let Some(hit) = self.pending_hit.take()
             && let Some(tab) = self.workspace.as_mut().and_then(Workspace::active_mut)
         {
@@ -762,5 +808,94 @@ fn language(path: &Path) -> &'static str {
         "toml" => "TOML",
         "md" => "Markdown",
         _ => "Plain text",
+    }
+}
+
+#[cfg(test)]
+mod diagnostic_tests {
+    use super::*;
+    fn shell() -> (Shell, PathBuf) {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/fixtures/studio")
+            .canonicalize()
+            .unwrap();
+        let mut shell = Shell::new("CodeCedar", Settings::default());
+        shell.set_workspace(Workspace::scan(&root).unwrap());
+        (shell, root)
+    }
+    #[test]
+    fn diagnostic_opens_existing_and_not_yet_open_source() {
+        let (mut s, root) = shell();
+        let path = root.join("src/main.rs");
+        s.navigate_diagnostic(DiagnosticLocation {
+            file: "src/main.rs".into(),
+            line: 6,
+            column: 1,
+        });
+        assert!(matches!(s.effects.last(), Some(Effect::OpenFile(p)) if p == &path));
+        s.accept_document(Document::open(&path).unwrap());
+        assert_eq!(
+            s.workspace
+                .as_mut()
+                .unwrap()
+                .active_mut()
+                .unwrap()
+                .position(),
+            (5, 0)
+        );
+        s.navigate_diagnostic(DiagnosticLocation {
+            file: path.clone(),
+            line: 3,
+            column: 1,
+        });
+        assert!(s.activate_path(&path));
+        assert_eq!(
+            s.workspace
+                .as_mut()
+                .unwrap()
+                .active_mut()
+                .unwrap()
+                .position(),
+            (2, 0)
+        );
+    }
+    #[test]
+    fn dirty_buffers_and_external_diagnostics_do_not_navigate() {
+        let (mut s, root) = shell();
+        s.accept_document(Document::open(root.join("src/main.rs")).unwrap());
+        s.workspace
+            .as_mut()
+            .unwrap()
+            .active_mut()
+            .unwrap()
+            .insert("// edited\n")
+            .unwrap();
+        s.navigate_diagnostic(DiagnosticLocation {
+            file: "src/main.rs".into(),
+            line: 6,
+            column: 1,
+        });
+        assert!(s.pending_diagnostic.is_none());
+        assert!(s.error.as_ref().unwrap().contains("Save"));
+        let (mut s, _) = shell();
+        s.navigate_diagnostic(DiagnosticLocation {
+            file: "../Cargo.toml".into(),
+            line: 1,
+            column: 1,
+        });
+        assert!(s.effects.is_empty());
+        assert!(s.error.is_some());
+    }
+    #[test]
+    fn workspace_switch_discards_pending_navigation() {
+        let (mut s, root) = shell();
+        s.navigate_diagnostic(DiagnosticLocation {
+            file: "src/main.rs".into(),
+            line: 6,
+            column: 1,
+        });
+        assert!(s.pending_diagnostic.is_some());
+        s.set_workspace(Workspace::scan(root).unwrap());
+        assert!(s.pending_diagnostic.is_none());
     }
 }

@@ -7,6 +7,7 @@ a.out.mkdir(parents=True,exist_ok=True)
 scenes=[('editor-dark','editor',False,'1440x900',True),('editor-light','editor',True,'1440x900',True),('compact','editor',False,'900x640',True),('welcome','welcome',False,'1200x800',False),('palette','palette',False,'1440x900',True),('commands','commands',False,'1440x900',True),('settings','settings',False,'1440x900',True),('search','search',False,'1440x900',True),('unsaved','unsaved',False,'1440x900',True),('trust','trust',False,'1440x900',True),('error','error',False,'1440x900',True)]
 scenes += [("keymap","keymap",False,"1440x900",True),("goto","goto",False,"1440x900",True),("find","find",False,"1440x900",True),("compact-keymap","keymap",False,"900x640",True),("compact-find","find",False,"900x640",True)]
 scenes += [("remap","remap",False,"1440x900",True),("remap-conflict","remap-conflict",False,"1440x900",True),("remap-record","remap-record",False,"1440x900",True),("compact-remap","remap",False,"900x640",True),("compact-remap-conflict","remap-conflict",False,"900x640",True),("light-keymap","keymap",True,"1440x900",True),("light-remap","remap",True,"1440x900",True)]
+scenes += [("problems", "problems", False, "1440x900", True), ("compact-problems", "problems", False, "900x640", True), ("light-problems", "problems", True, "1440x900", True), ("task-output", "output", False, "900x640", True)]
 files=[]
 for name,state,light,size,project in scenes:
     png=a.out/(name+'.png');cmd=[str(a.binary.resolve())]

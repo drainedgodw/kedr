@@ -242,8 +242,7 @@ impl Studio {
                             ctx.request_repaint()
                         }) {
                             Ok(t) => {
-                                self.shell.task = Some(t);
-                                self.shell.settings.show_output = true;
+                                self.shell.set_task(t);
                             }
                             Err(e) => self.shell.error(e),
                         }

@@ -138,6 +138,12 @@ pub(crate) struct ListRow<'a> {
     pub selected: bool,
 }
 pub(crate) fn list_row(ui: &mut Ui, row: ListRow<'_>, p: Palette) -> egui::Response {
+    list_row_impl(ui, row, p, false)
+}
+pub(crate) fn code_list_row(ui: &mut Ui, row: ListRow<'_>, p: Palette) -> egui::Response {
+    list_row_impl(ui, row, p, true)
+}
+fn list_row_impl(ui: &mut Ui, row: ListRow<'_>, p: Palette, code: bool) -> egui::Response {
     let height = if row.detail.is_empty() { 32. } else { 48. };
     let response = ui.add(
         egui::Button::new("")
@@ -170,7 +176,11 @@ pub(crate) fn list_row(ui: &mut Ui, row: ListRow<'_>, p: Palette) -> egui::Respo
     } {
         let mut job = egui::text::LayoutJob::simple_singleline(
             text.into(),
-            egui::FontId::proportional(size),
+            if code && y == 26. {
+                egui::FontId::monospace(size)
+            } else {
+                egui::FontId::proportional(size)
+            },
             color,
         );
         job.wrap.max_width = width;

@@ -23,19 +23,23 @@ while True:
         if mode == 'hang': time.sleep(60)
         if mode == 'malformed':
             sys.stdout.buffer.write(b'Content-Length: 99999999\r\n\r\n'); sys.stdout.buffer.flush(); time.sleep(60)
-        send(dict(id=v['id'], result=dict(capabilities=dict(definitionProvider=True, positionEncoding='utf-8' if mode == 'encoding' else 'utf-16'))))
+        send(dict(id=v['id'], result=dict(capabilities=dict(definitionProvider=True, referencesProvider=(mode != 'no-references'), positionEncoding='utf-8' if mode == 'encoding' else 'utf-16'))))
     elif method == 'initialized':
         if mode != 'index-hang': send(dict(method='experimental/serverStatus', params=dict(quiescent=True)))
     elif method == 'textDocument/didOpen':
         d = v['params']['textDocument']; assert d['version'] == 1
         opened.append(d)
-    elif method == 'textDocument/definition':
+    elif method in ('textDocument/definition', 'textDocument/references'):
+        if method.endswith('/references'): assert v['params']['context']['includeDeclaration'] is False
         assert opened and '// unsaved LSP overlay' in opened[0]['text']
         send(dict(id=900, method='workspace/applyEdit', params=dict(edit={})))
         reply = read(); assert reply['id'] == 900 and reply['error']['code'] == -32601
         if mode in ('error', 'large-error'): send(dict(id=v['id'], error=dict(code=-32001, message='X' * 2048 if mode == 'large-error' else 'Fixture failure')))
         else:
             send(dict(id=42, result=None))  # unrelated response must not complete the request
-            send(dict(id=v['id'], result=None if mode == 'null' else dict(uri=opened[0]['uri'], range=dict(start=dict(line=1, character=0), end=dict(line=1, character=0)))))
+            target = dict(uri=opened[0]['uri'], range=dict(start=dict(line=1, character=0), end=dict(line=1, character=0)))
+            result = None if mode == 'null' else target
+            if method.endswith('/references') and mode != 'null' and mode != 'references-object': result = [target]
+            send(dict(id=v['id'], result=result))
     elif method == 'shutdown': send(dict(id=v['id'], result=None))
     elif method == 'exit': break

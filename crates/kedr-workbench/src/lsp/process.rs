@@ -80,6 +80,30 @@ fn run(
     timeout: Duration,
     cancel: &AtomicBool,
 ) -> Result<Option<DefinitionOutcome>, String> {
+    let targets = request(query, command, timeout, cancel, false)?;
+    let outcome = if let Some(target) = targets.first() {
+        let document = if query.documents.iter().any(|d| d.path == target.path) {
+            None
+        } else {
+            Some(Document::open(&target.path).map_err(|e| e.to_string())?)
+        };
+        Some(DefinitionOutcome {
+            target: target.clone(),
+            document,
+            alternatives: targets.len() - 1,
+        })
+    } else {
+        None
+    };
+    Ok(outcome)
+}
+pub(super) fn request(
+    query: &DefinitionQuery,
+    command: &mut Command,
+    timeout: Duration,
+    cancel: &AtomicBool,
+    references: bool,
+) -> Result<Vec<DefinitionTarget>, String> {
     let deadline = Instant::now() + timeout;
     if cancel.load(Ordering::Relaxed) {
         return Err("Language request cancelled".into());
@@ -118,7 +142,7 @@ fn run(
     });
     send(
         &out,
-        json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":std::process::id(),"rootUri":file_uri(&query.root)?,"capabilities":{"experimental":{"serverStatusNotification":true},"general":{"positionEncodings":["utf-16"]},"textDocument":{"definition":{"linkSupport":true}}},"initializationOptions":{"checkOnSave":false,"cargo":{"buildScripts":{"enable":false}},"procMacro":{"enable":false}}}}),
+        json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":std::process::id(),"rootUri":file_uri(&query.root)?,"capabilities":{"experimental":{"serverStatusNotification":true},"general":{"positionEncodings":["utf-16"]},"textDocument":{"definition":{"linkSupport":true},"references":{}}},"initializationOptions":{"checkOnSave":false,"cargo":{"buildScripts":{"enable":false}},"procMacro":{"enable":false}}}}),
     )?;
     let initialized = response(&input, &out, 1, deadline, cancel)?;
     if initialized["capabilities"]
@@ -128,10 +152,21 @@ fn run(
         return Err("Language server selected an unsupported position encoding".into());
     }
     if !initialized["capabilities"]
-        .get("definitionProvider")
+        .get(if references {
+            "referencesProvider"
+        } else {
+            "definitionProvider"
+        })
         .is_some_and(|v| v == true || v.is_object())
     {
-        return Err("Language server does not advertise Go to definition".into());
+        return Err(format!(
+            "Language server does not advertise {}",
+            if references {
+                "Find usages"
+            } else {
+                "Go to definition"
+            }
+        ));
     }
     send(
         &out,
@@ -146,26 +181,15 @@ fn run(
     // rust-analyzer reports quiescence after workspace loading; do not race initial indexing.
     response(&input, &out, 0, deadline, cancel)?;
     let uri = file_uri(&query.source)?;
+    let mut params = json!({"textDocument":{"uri":uri},"position":{"line":query.line,"character":query.character}});
+    if references {
+        params["context"] = json!({"includeDeclaration":false});
+    }
     send(
         &out,
-        json!({"jsonrpc":"2.0","id":2,"method":"textDocument/definition","params":{"textDocument":{"uri":uri},"position":{"line":query.line,"character":query.character}}}),
+        json!({"jsonrpc":"2.0","id":2,"method":if references { "textDocument/references" } else { "textDocument/definition" },"params":params}),
     )?;
     let value = response(&input, &out, 2, deadline, cancel)?;
-    let targets = definition_targets(&value, query)?;
-    let outcome = if let Some(target) = targets.first() {
-        let document = if query.documents.iter().any(|d| d.path == target.path) {
-            None
-        } else {
-            Some(Document::open(&target.path).map_err(|e| e.to_string())?)
-        };
-        Some(DefinitionOutcome {
-            target: target.clone(),
-            document,
-            alternatives: targets.len() - 1,
-        })
-    } else {
-        None
-    };
     // Best-effort orderly shutdown. Process guard still kills/reaps a non-cooperating child.
     send(
         &out,
@@ -182,7 +206,10 @@ fn run(
     {
         let _ = send(&out, json!({"jsonrpc":"2.0","method":"exit"}));
     }
-    Ok(outcome)
+    if references && !value.is_null() && !value.is_array() {
+        return Err("References response must be an array or null".into());
+    }
+    definition_targets(&value, query)
 }
 fn send(out: &SyncSender<Value>, value: Value) -> Result<(), String> {
     out.try_send(value)

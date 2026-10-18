@@ -1,8 +1,10 @@
-//! On-demand, explicitly authorized LSP definition requests. No automatic startup.
+//! On-demand, explicitly authorized LSP navigation requests. No automatic startup.
 mod process;
+mod references;
 use crate::Workspace;
 use kedr_core::{PositionEncoding, Version, document::Document};
 pub use process::DefinitionRunner;
+pub use references::{ReferenceHit, ReferenceOutcome, ReferenceRunner};
 use serde_json::Value;
 use std::{
     io::{self, BufRead, Read, Write},
@@ -32,7 +34,7 @@ impl DefinitionQuery {
     pub fn capture(w: &Workspace) -> Result<Self, String> {
         let tab = w.active().ok_or("Open a Rust source file first")?;
         if tab.document.path.extension().and_then(|s| s.to_str()) != Some("rs") {
-            return Err("Go to definition currently supports Rust sources only".into());
+            return Err("Language navigation currently supports Rust sources only".into());
         }
         let (line, character) = tab
             .document

@@ -23,6 +23,7 @@ pub enum Action {
     Forward,
     RecentFiles,
     Definition,
+    References,
     CancelLanguage,
     Project,
     Replace,
@@ -56,11 +57,12 @@ pub enum Action {
     Settings,
 }
 impl Action {
-    pub const ALL: [Self; 35] = [
+    pub const ALL: [Self; 36] = [
         Self::Back,
         Self::Forward,
         Self::RecentFiles,
         Self::Definition,
+        Self::References,
         Self::CancelLanguage,
         Self::Project,
         Self::Replace,
@@ -99,6 +101,7 @@ impl Action {
             Self::Forward => "Navigate forward",
             Self::RecentFiles => "Recent files",
             Self::Definition => "Go to definition",
+            Self::References => "Find usages",
             Self::CancelLanguage => "Cancel language request",
             Self::Project => "Show project files",
             Self::Replace => "Replace in file",
@@ -138,6 +141,7 @@ impl Action {
             Self::Forward => "navigation.forward",
             Self::RecentFiles => "navigation.recent",
             Self::Definition => "navigation.definition",
+            Self::References => "navigation.references",
             Self::CancelLanguage => "language.cancel",
             Self::Project => "workspace.project",
             Self::OpenProject => "workspace.open",
@@ -180,6 +184,7 @@ pub enum Effect {
     Search(String),
     RunTask(TaskKind),
     Definition,
+    References,
     Quit,
     PreferencesChanged,
 }
@@ -229,6 +234,7 @@ enum Dialog {
     Quit,
     Trust(TaskKind),
     LanguageTrust,
+    Usages,
 }
 struct PaletteState {
     files: bool,
@@ -247,6 +253,9 @@ pub struct Shell {
     pub search_report: Option<SearchReport>,
     pub task: Option<TaskRunner>,
     pub definition: Option<kedr_workbench::lsp::DefinitionRunner>,
+    pub references: Option<kedr_workbench::lsp::ReferenceRunner>,
+    usages: Option<language::Usages>,
+    language_action: Action,
     pub editor_cache: EditorCache,
     effects: Vec<Effect>,
     resolved_profile: crate::Keymap,
@@ -306,6 +315,9 @@ impl Shell {
             search_report: None,
             task: None,
             definition: None,
+            references: None,
+            usages: None,
+            language_action: Action::Definition,
             editor_cache: EditorCache::default(),
             effects: Vec::new(),
             resolved_profile,
@@ -487,13 +499,14 @@ impl Shell {
     pub fn action(&mut self, a: Action) {
         self.observe_location();
         match a {
-            Action::Definition => {
-                if self.definition.is_some() {
+            Action::Definition | Action::References => {
+                self.language_action = a;
+                if self.definition.is_some() || self.references.is_some() {
                     self.error("A language request is already running");
                 } else if let Err(error) = self.definition_query() {
                     self.error(error);
                 } else if self.language_trusted {
-                    self.effects.push(Effect::Definition);
+                    self.effects.push(self.language_effect());
                 } else {
                     self.dialog = Some(Dialog::LanguageTrust);
                 }
@@ -769,6 +782,7 @@ impl Shell {
     }
     pub fn show(&mut self, ctx: &Context) -> Vec<Effect> {
         self.poll_definition(ctx);
+        self.poll_references(ctx);
         self.observe_location();
         self.refresh_shortcuts();
         self.shortcuts(ctx);

@@ -10,6 +10,7 @@ The default profile is a **JetBrains-compatible subset**, not full keymap or fea
 | Navigate forward / `navigation.forward` | Ctrl Alt Right | Cmd Alt Right | Ctrl Alt Right | Cmd Alt Right |
 | Recent files / `navigation.recent` | Ctrl E | Cmd E | Ctrl E | Cmd E |
 | Go to definition / `navigation.definition` | F12 | F12 | F12 | F12 |
+| Find usages / `navigation.references` | Alt F7 | Alt F7 | Alt F7 | Alt F7 |
 | Cancel language request / `language.cancel` | — | — | — | — |
 | Show project files / `workspace.project` | Alt 1 | Cmd 1 | Ctrl 1 | Cmd 1 |
 | Replace in file / `search.replace` | Ctrl R | Cmd R | Ctrl R | Cmd R |

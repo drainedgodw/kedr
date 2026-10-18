@@ -123,3 +123,10 @@ after separate permission. Open unsaved Rust files are overlaid; stale results
 are discarded. Only scanned workspace targets are supported. See the
 [language adapter contract](../docs/studio/LANGUAGE.md) for setup, cancellation
 and limits. This is not persistent LSP, completion or semantic refactoring.
+
+Navigate → Find usages / Alt+F7 now requests semantic Rust references from the
+same explicitly authorized analyzer. A selectable list includes source previews;
+Up/Down and Enter open a location, Escape dismisses. Declaration is excluded.
+Open unsaved Rust overlays and version guards apply; the list is discarded after
+editor changes. See the language contract for bounds and unsupported external
+targets. This is not rename, literal search, or a persistent usages index.

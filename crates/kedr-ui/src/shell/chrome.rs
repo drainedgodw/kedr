@@ -41,6 +41,7 @@ impl Shell {
                                         "Navigate",
                                         &[
                                             Action::Definition,
+                                            Action::References,
                                             Action::Back,
                                             Action::Forward,
                                             Action::RecentFiles,

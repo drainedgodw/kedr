@@ -344,3 +344,41 @@ test now checks the canonical existing parent, the exact escaped filename and
 the re-encoded URI; it does not require verbatim-prefix preservation. Runtime
 target validation still canonicalizes the target before membership checks.
 Windows execution of this correction awaits the subsequent hosted run.
+
+## On-demand Rust usages — local acceptance
+
+The preceding portable revision e1631e49 completed hosted workflow run
+39126973053 successfully, including the earlier Windows URI and Arch recent-file
+corrections. That result belongs to the preceding revision, not this change.
+
+This revision passed 151 default Rust workspace tests, two separately invoked
+ignored-by-default live rust-analyzer tests (definitions and references), 18
+Python installer tests, formatting, warnings-denied workspace/all-target Clippy,
+catalog/generated-keymap checks and a native debug build. The live references
+test verifies both constructor usages with an unsaved source-line shift and
+excludes the declaration. Deterministic protocol fixtures are separate evidence.
+
+New tests exercise reference response shape/capability checks, null results,
+cancellation, deduplication, UTF-16 positions, dirty overlays, closed-file loading,
+location/file quotas, stale query rejection, independent selection revalidation,
+separate permission routing, history and actual egui keyboard frames. At 760x520,
+Down/Enter selects and opens the second usage; empty Enter is inert and Escape
+closes the list.
+
+Thirty-eight native captures were generated; their manifest records the accepted
+binary hash and each image hash. Eleven states were individually inspected:
+commands, file palette, keymap, minimum keymap, usages, compact usages, light
+usages, empty usages, compact 128-row usages, language trust and compact language
+trust. The other 27 captures were generated, not all re-reviewed. Usages capture
+scenes are visibly labelled fixtures, not live analyzer results; the 128-row scene
+is synthetic layout stress evidence only.
+
+Alt+F7 uses a fresh authorized analyzer request, not a persistent LSP session.
+Results are bounded to 128 scanned local locations; closed previews allow at most
+32 documents, 1 MiB each and 4 MiB total. Invalid/oversized sets fail rather than
+silently truncating. Open buffers and query revisions are guarded; result snapshots
+do not add external disk watching. See LANGUAGE.md for lifecycle and security limits.
+Completion, semantic rename, debugging, Git integration and a PTY terminal remain
+unimplemented. Only CodeCedar is runnable. No full JetBrains parity, performance
+advantage or new cross-platform installer acceptance is claimed. Hosted CI for
+this revision must be checked separately after publication.

@@ -123,6 +123,7 @@ fn editor_only(action: Action) -> bool {
             | Action::Duplicate
             | Action::DeleteLine
             | Action::Definition
+            | Action::References
     )
 }
 pub fn resolved_bindings(

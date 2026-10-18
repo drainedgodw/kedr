@@ -223,7 +223,7 @@ impl Shell {
         egui::Modal::new(Id::new("kedr-dialog"))
             .frame(egui::Frame::popup(&ctx.style()).inner_margin(16).corner_radius(6))
             .show(ctx, |ui| {
-            ui.set_width(520.0_f32.min(ctx.content_rect().width() - 80.));
+            ui.set_width((if matches!(dialog, Dialog::Usages) { 640.0_f32 } else { 520.0_f32 }).min(ctx.content_rect().width() - 80.));
             match &dialog {
                 Dialog::Keymap => {
                     ui.heading("Keyboard shortcuts");
@@ -359,19 +359,48 @@ impl Shell {
                         self.editor_cache.focus_next = true;
                     }
                 }
+                Dialog::Usages => {
+                    ui.heading("Find usages");
+                    let mut chosen = None;
+                    if let Some(usages) = &mut self.usages {
+                        let count = usages.result.hits.len();
+                        ui.label(RichText::new(format!("{count} usages · scanned workspace · declaration excluded")).color(p.muted));
+                        if usages.fixture { ui.label(RichText::new("Capture fixture — not a live analyzer result").color(p.amber)); }
+                        if count == 0 { ui.label("No usages found in the scanned workspace."); }
+                        let down = ctx.input_mut(|i|i.consume_key(Modifiers::NONE,Key::ArrowDown));
+                        let up = ctx.input_mut(|i|i.consume_key(Modifiers::NONE,Key::ArrowUp));
+                        if down { usages.selected = (usages.selected + 1).min(count.saturating_sub(1)); }
+                        if up { usages.selected = usages.selected.saturating_sub(1); }
+                        egui::ScrollArea::vertical().id_salt("usages-list").max_height((ctx.content_rect().height()-250.).clamp(70.,340.)).show(ui,|ui| {
+                            ui.set_min_width(ui.available_width());
+                            for (index,hit) in usages.result.hits.iter().enumerate() {
+                                let path=hit.target.path.strip_prefix(&usages.query.root).unwrap_or(&hit.target.path);
+                                let title=format!("{}:{}:{}",path.display(),hit.target.line+1,hit.target.character+1);
+                                let response=crate::code_list_row(ui,ListRow{title:&title,detail:&hit.preview,shortcut:"",selected:index==usages.selected},p)
+                                    .on_hover_text(format!("{title}\n{}",hit.preview));
+                                if response.clicked() { chosen=Some(index); }
+                                if (down||up) && index==usages.selected {response.scroll_to_me(Some(Align::Center));}
+                            }
+                        });
+                        if count > 0 && ctx.input_mut(|i|i.consume_key(Modifiers::NONE,Key::Enter)) { chosen=Some(usages.selected); }
+                    }
+                    ui.separator();
+                    ui.horizontal(|ui| { ui.label(RichText::new("Up / Down Select    Enter Open    Esc Close").color(p.muted)); if ui.button("Close").clicked(){close=true;} });
+                    if let Some(index)=chosen { self.open_usage(index); close=true; }
+                }
                 Dialog::LanguageTrust => {
                     ui.heading("Allow Rust language analysis?");
-                    ui.label("Go to definition starts rust-analyzer from PATH. It reads this workspace and receives the current unsaved Rust buffers.");
+                    ui.label("Language navigation starts rust-analyzer from PATH. It reads this workspace and receives the current unsaved Rust buffers.");
                     if let Some(w) = &self.workspace {
                         ui.label(RichText::new(w.project.root.display().to_string()).monospace().color(p.amber));
                     }
                     ui.label("Build scripts and procedural macros are disabled in this adapter, but the language server is not sandboxed and may invoke toolchain processes. Only continue for a trusted workspace.");
                     ui.add_space(16.);
                     ui.horizontal_wrapped(|ui| {
-                        if ui.button("Allow once").clicked() { self.effects.push(Effect::Definition); close = true; }
+                        if ui.button("Allow once").clicked() { self.effects.push(self.language_effect()); close = true; }
                         if ui.button("Allow for this workspace session").clicked() {
                             self.language_trusted = true;
-                            self.effects.push(Effect::Definition); close = true;
+                            self.effects.push(self.language_effect()); close = true;
                         }
                         if ui.button("Cancel").clicked() { close = true; }
                     });
@@ -444,6 +473,10 @@ impl Shell {
             }
         }
         if close {
+            if matches!(dialog, Dialog::Usages) {
+                self.usages = None;
+                self.editor_cache.focus_next = true;
+            }
             self.dialog = next_dialog;
         }
     }
@@ -480,6 +513,58 @@ impl Shell {
             }
             "goto" => self.action(Action::GoToLine),
             "find" => self.action(Action::Replace),
+            "usages" | "usages-empty" | "usages-many" => {
+                if let Ok(query) = self.definition_query() {
+                    let mut targets = if state == "usages-empty" {
+                        Vec::new()
+                    } else {
+                        vec![
+                            kedr_workbench::lsp::ReferenceHit {
+                                target: kedr_workbench::lsp::DefinitionTarget {
+                                    path: query.source.clone(),
+                                    line: 6,
+                                    character: 21,
+                                },
+                                preview: "let mut garden = Garden::new(\"Northern lights\");"
+                                    .into(),
+                            },
+                            kedr_workbench::lsp::ReferenceHit {
+                                target: kedr_workbench::lsp::DefinitionTarget {
+                                    path: query.source.clone(),
+                                    line: 21,
+                                    character: 25,
+                                },
+                                preview: "let mut garden = Garden::new(\"Home\");".into(),
+                            },
+                        ]
+                    };
+                    if state == "usages-many" {
+                        targets = (0..128)
+                            .map(|index| kedr_workbench::lsp::ReferenceHit {
+                                target: kedr_workbench::lsp::DefinitionTarget {
+                                    path: query.source.clone(),
+                                    line: index,
+                                    character: 0,
+                                },
+                                preview: format!(
+                                    "// visual stress fixture {index}: {}",
+                                    "a long source preview ".repeat(8)
+                                ),
+                            })
+                            .collect();
+                    }
+                    self.usages = Some(language::Usages {
+                        query,
+                        result: kedr_workbench::lsp::ReferenceOutcome {
+                            hits: targets,
+                            documents: Vec::new(),
+                        },
+                        selected: 0,
+                        fixture: true,
+                    });
+                    self.dialog = Some(Dialog::Usages);
+                }
+            }
             "language-trust" => self.dialog = Some(Dialog::LanguageTrust),
             "trust" => self.action(Action::Check),
             "search" => {

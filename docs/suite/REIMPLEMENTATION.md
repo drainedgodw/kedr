@@ -27,8 +27,8 @@ are Kedr assignments; OS-reserved shortcuts may need remapping.
 [Source navigation](https://www.jetbrains.com/help/idea/navigating-through-the-source-code.html)
 separates file navigation from structural/semantic navigation. CodeCedar has file,
 line and saved-source Cargo diagnostic navigation, plus an explicitly authorized
-on-demand Rust definition lookup through rust-analyzer. Usage and super-type
-navigation are not implemented.
+on-demand Rust definition lookup through rust-analyzer. Rust usages now have an explicitly selected result list; super-type navigation
+is not implemented.
 
 [Search everywhere](https://www.jetbrains.com/help/idea/searching-everywhere.html)
 covers files, actions, classes, symbols, settings and Git. CodeCedar's file and
@@ -38,7 +38,7 @@ providers and double-Shift activation are not implemented.
 ## Next implementation gates (not shipped features)
 
 1. Persistent language service: build on the shipped per-request Rust definition
-   adapter with long-lived didChange synchronization, diagnostics, references,
+   adapter with long-lived didChange synchronization, diagnostics,
    hover and completion. Retain version checks, cancellation, capability
    negotiation, UTF-16 validation and explicit trust. Test stale/out-of-order
    responses, server exit and Unicode. Do not substitute lexical matches for
@@ -68,5 +68,10 @@ See [parity gates](PARITY.md), [design contract](../studio/DESIGN.md) and
 The [Rust definition adapter](../studio/LANGUAGE.md) now implements an explicitly
 authorized, cancellable LSP definition request with unsaved Rust overlays and
 version-checked application. It is an isolated per-request server, not the
-persistent LSP session gate above. Completion, references and rename remain
+persistent LSP session gate above. Completion and rename remain
 unimplemented. No full reverse-engineering or performance-parity claim follows.
+
+
+The adapter now also supports semantic Find usages through LSP references, with
+unsaved overlays, bounded previews, stale-result rejection and explicit selection.
+This is a per-request modal snapshot, not a persistent usages index/tool window.

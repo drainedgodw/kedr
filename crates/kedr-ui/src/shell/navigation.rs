@@ -91,8 +91,9 @@ impl Shell {
 impl Shell {
     pub(super) fn action_available(&self, action: Action) -> bool {
         match action {
-            Action::Definition => {
+            Action::Definition | Action::References => {
                 self.definition.is_none()
+                    && self.references.is_none()
                     && self
                         .workspace
                         .as_ref()
@@ -101,7 +102,7 @@ impl Shell {
                             t.document.path.extension().and_then(|s| s.to_str()) == Some("rs")
                         })
             }
-            Action::CancelLanguage => self.definition.is_some(),
+            Action::CancelLanguage => self.definition.is_some() || self.references.is_some(),
             Action::Back => self.history.can_back() && self.restoring.is_none(),
             Action::Forward => self.history.can_forward() && self.restoring.is_none(),
             Action::RecentFiles | Action::QuickOpen => self.workspace.is_some(),

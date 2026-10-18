@@ -23,8 +23,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libxkbcommon-x11-0 libgl1-mesa-dev libwayland-dev xvfb desktop-file-utils
       - run: cargo fmt --all --check
       - run: cargo test --locked --workspace
-      - name: Live rust-analyzer definition workflow
-        run: cargo test --locked -p kedr-workbench real_rust_analyzer_definition -- --ignored --nocapture
+      - name: Live rust-analyzer navigation workflows
+        run: cargo test --locked -p kedr-workbench real_rust_analyzer_ -- --ignored --nocapture
       - name: Linux installer filesystem tests
         if: runner.os == 'Linux'
         run: python3 -m unittest discover -s packaging/tests -v

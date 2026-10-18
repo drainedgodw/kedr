@@ -74,3 +74,14 @@ Language-analysis permission is a separate explicit dialog, never implicit in
 opening a workspace. Pending requests can be cancelled from Run; changed editor
 state discards them. This does not turn lexical colors into semantic highlighting
 or provide completion/refactoring.
+
+
+## Usages result selection
+
+Find usages uses a flat, keyboard-operable modal list rather than decorative
+result cards. Each location has a relative path, line/UTF-16 column and a bounded
+monospace source preview. The empty state, selected row and close instructions
+remain visible at compact sizes; the result viewport scrolls independently.
+Dark/light/compact native scenes are capture fixtures and are labeled as such.
+Results are explicitly selected, never automatically applied from a stale query.
+This is not the final persistent usages tool-window design.

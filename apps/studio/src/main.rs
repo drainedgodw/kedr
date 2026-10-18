@@ -237,6 +237,24 @@ impl Studio {
                         ));
                     }
                 }
+                Effect::References => {
+                    if self.options.capture.is_some() {
+                        self.shell
+                            .error("Language server execution is disabled in capture mode");
+                        continue;
+                    }
+                    match self.shell.definition_query() {
+                        Ok(query) => {
+                            let ctx = ctx.clone();
+                            self.shell
+                                .set_references(kedr_workbench::lsp::ReferenceRunner::start(
+                                    query,
+                                    move || ctx.request_repaint(),
+                                ));
+                        }
+                        Err(error) => self.shell.error(error),
+                    }
+                }
                 Effect::Definition => {
                     if self.options.capture.is_some() {
                         self.shell

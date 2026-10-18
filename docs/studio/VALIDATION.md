@@ -329,3 +329,11 @@ parity, performance advantage or new cross-platform installer acceptance is
 claimed. CI now explicitly requests rust-analyzer and the live integration test
 on Linux, Windows and macOS; local success does not establish hosted CI success.
 See LANGUAGE.md for the exact lifecycle, security and functionality limits.
+
+
+Follow-up CI investigation: the preceding redesign run passed all three desktop
+jobs but failed the Arch package workspace tests. Recent-file matching used the
+absolute checkout path, so `/tmp/kedr-package/src/kedr` introduced false fuzzy
+matches. Matching now uses workspace-relative paths, consistent with quick-open;
+the existing MRU test also rejects absolute-root queries. This is a correctness
+fix, not evidence that the new hosted Arch package job has passed.

@@ -68,7 +68,13 @@ impl Shell {
             .recent_files
             .iter()
             .filter(|p| w.project.files.contains(p))
-            .filter(|p| kedr_workbench::fuzzy_score(&p.to_string_lossy(), query).is_some())
+            .filter(|p| {
+                p.strip_prefix(&w.project.root)
+                    .ok()
+                    .is_some_and(|relative| {
+                        kedr_workbench::fuzzy_score(&relative.to_string_lossy(), query).is_some()
+                    })
+            })
             .cloned()
             .collect();
         if !recent {
@@ -222,6 +228,8 @@ mod tests {
         assert!(s.activate_path(&a));
         assert_eq!(s.palette_files("", true), vec![a.clone(), b.clone()]);
         assert_eq!(s.palette_files("grs", true), vec![b]);
+        // Absolute checkout/build directories must not participate in matching.
+        assert!(s.palette_files(&root.to_string_lossy(), true).is_empty());
         assert_eq!(s.palette_files("", false).first(), Some(&a));
         s.set_workspace(Workspace::scan(&root).unwrap());
         assert!(s.palette_files("", true).is_empty());

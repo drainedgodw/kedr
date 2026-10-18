@@ -26,8 +26,9 @@ are Kedr assignments; OS-reserved shortcuts may need remapping.
 
 [Source navigation](https://www.jetbrains.com/help/idea/navigating-through-the-source-code.html)
 separates file navigation from structural/semantic navigation. CodeCedar has file,
-line and saved-source Cargo diagnostic navigation; declaration/usage/super-type
-resolution is not delivered by that work.
+line and saved-source Cargo diagnostic navigation, plus an explicitly authorized
+on-demand Rust definition lookup through rust-analyzer. Usage and super-type
+navigation are not implemented.
 
 [Search everywhere](https://www.jetbrains.com/help/idea/searching-everywhere.html)
 covers files, actions, classes, symbols, settings and Git. CodeCedar's file and
@@ -36,11 +37,11 @@ providers and double-Shift activation are not implemented.
 
 ## Next implementation gates (not shipped features)
 
-1. Language service: versioned document synchronization, cancellation, capability
-   negotiation and UTF-16 conversion; real Rust analysis via an explicit external
-   service, then diagnostics, definition, hover and completion. Test stale/out-of-
-   order responses, server exit and Unicode. A server that can run build scripts
-   needs a visible trust/lifecycle policy. Do not substitute lexical matches for
+1. Persistent language service: build on the shipped per-request Rust definition
+   adapter with long-lived didChange synchronization, diagnostics, references,
+   hover and completion. Retain version checks, cancellation, capability
+   negotiation, UTF-16 validation and explicit trust. Test stale/out-of-order
+   responses, server exit and Unicode. Do not substitute lexical matches for
    semantic definitions or rename.
 2. Refactorings: workspace edits, preview, per-document version checks, atomic
    save/rollback and conflicts. Start with semantic rename, not text replace.
@@ -61,3 +62,11 @@ providers and double-Shift activation are not implemented.
 
 See [parity gates](PARITY.md), [design contract](../studio/DESIGN.md) and
 [validation](../studio/VALIDATION.md) for the current implemented boundary.
+
+## First language adapter
+
+The [Rust definition adapter](../studio/LANGUAGE.md) now implements an explicitly
+authorized, cancellable LSP definition request with unsaved Rust overlays and
+version-checked application. It is an isolated per-request server, not the
+persistent LSP session gate above. Completion, references and rename remain
+unimplemented. No full reverse-engineering or performance-parity claim follows.

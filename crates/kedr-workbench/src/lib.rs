@@ -1,6 +1,7 @@
 //! GUI-independent editing workflows and bounded project services.
 mod diagnostics;
 mod editor;
+pub mod lsp;
 mod navigation;
 mod search;
 mod tasks;

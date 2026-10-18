@@ -1,4 +1,5 @@
 mod chrome;
+mod language;
 mod navigation;
 mod overlays;
 mod panels;
@@ -21,6 +22,8 @@ pub enum Action {
     Back,
     Forward,
     RecentFiles,
+    Definition,
+    CancelLanguage,
     Project,
     Replace,
     FindNext,
@@ -53,10 +56,12 @@ pub enum Action {
     Settings,
 }
 impl Action {
-    pub const ALL: [Self; 33] = [
+    pub const ALL: [Self; 35] = [
         Self::Back,
         Self::Forward,
         Self::RecentFiles,
+        Self::Definition,
+        Self::CancelLanguage,
         Self::Project,
         Self::Replace,
         Self::FindNext,
@@ -93,6 +98,8 @@ impl Action {
             Self::Back => "Navigate back",
             Self::Forward => "Navigate forward",
             Self::RecentFiles => "Recent files",
+            Self::Definition => "Go to definition",
+            Self::CancelLanguage => "Cancel language request",
             Self::Project => "Show project files",
             Self::Replace => "Replace in file",
             Self::FindNext => "Find next occurrence",
@@ -130,6 +137,8 @@ impl Action {
             Self::Back => "navigation.back",
             Self::Forward => "navigation.forward",
             Self::RecentFiles => "navigation.recent",
+            Self::Definition => "navigation.definition",
+            Self::CancelLanguage => "language.cancel",
             Self::Project => "workspace.project",
             Self::OpenProject => "workspace.open",
             Self::QuickOpen => "navigation.file",
@@ -170,6 +179,7 @@ pub enum Effect {
     OpenFile(PathBuf),
     Search(String),
     RunTask(TaskKind),
+    Definition,
     Quit,
     PreferencesChanged,
 }
@@ -218,6 +228,7 @@ enum Dialog {
     Switch(PathBuf),
     Quit,
     Trust(TaskKind),
+    LanguageTrust,
 }
 struct PaletteState {
     files: bool,
@@ -235,6 +246,7 @@ pub struct Shell {
     pub search_loading: bool,
     pub search_report: Option<SearchReport>,
     pub task: Option<TaskRunner>,
+    pub definition: Option<kedr_workbench::lsp::DefinitionRunner>,
     pub editor_cache: EditorCache,
     effects: Vec<Effect>,
     resolved_profile: crate::Keymap,
@@ -261,6 +273,7 @@ pub struct Shell {
     status: String,
     error: Option<String>,
     trusted: bool,
+    language_trusted: bool,
     pending_hit: Option<SearchHit>,
     pending_diagnostic: Option<DiagnosticLocation>,
     problems_view: bool,
@@ -292,6 +305,7 @@ impl Shell {
             search_loading: false,
             search_report: None,
             task: None,
+            definition: None,
             editor_cache: EditorCache::default(),
             effects: Vec::new(),
             resolved_profile,
@@ -319,6 +333,7 @@ impl Shell {
             error: shortcut_error
                 .map(|e| format!("Invalid custom shortcuts; presets restored: {e}")),
             trusted: false,
+            language_trusted: false,
             pending_hit: None,
             pending_diagnostic: None,
             problems_view: true,
@@ -333,6 +348,8 @@ impl Shell {
         self.error = Some(message.into());
     }
     pub fn set_workspace(&mut self, w: Workspace) {
+        self.cancel_definition();
+        self.language_trusted = false;
         self.history = Default::default();
         self.recent_files.clear();
         self.restoring = None;
@@ -470,6 +487,18 @@ impl Shell {
     pub fn action(&mut self, a: Action) {
         self.observe_location();
         match a {
+            Action::Definition => {
+                if self.definition.is_some() {
+                    self.error("A language request is already running");
+                } else if let Err(error) = self.definition_query() {
+                    self.error(error);
+                } else if self.language_trusted {
+                    self.effects.push(Effect::Definition);
+                } else {
+                    self.dialog = Some(Dialog::LanguageTrust);
+                }
+            }
+            Action::CancelLanguage => self.cancel_definition(),
             Action::Back => self.history_step(false),
             Action::Forward => self.history_step(true),
             Action::Keybindings => self.dialog = Some(Dialog::Keymap),
@@ -739,6 +768,7 @@ impl Shell {
         }
     }
     pub fn show(&mut self, ctx: &Context) -> Vec<Effect> {
+        self.poll_definition(ctx);
         self.observe_location();
         self.refresh_shortcuts();
         self.shortcuts(ctx);

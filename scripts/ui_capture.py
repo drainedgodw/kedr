@@ -10,6 +10,7 @@ scenes += [("remap","remap",False,"1440x900",True),("remap-conflict","remap-conf
 scenes += [("problems", "problems", False, "1440x900", True), ("compact-problems", "problems", False, "900x640", True), ("light-problems", "problems", True, "1440x900", True), ("task-output", "output", False, "900x640", True)]
 scenes += [("recent-files", "recent", False, "900x640", True)]
 scenes += [("minimum-editor", "editor", False, "760x520", True), ("minimum-keymap", "keymap", False, "760x520", True)]
+scenes += [("language-trust", "language-trust", False, "1440x900", True), ("compact-language-trust", "language-trust", False, "760x520", True), ("light-language-trust", "language-trust", True, "900x640", True)]
 files=[]
 for name,state,light,size,project in scenes:
     png=a.out/(name+'.png');cmd=[str(a.binary.resolve())]

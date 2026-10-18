@@ -85,6 +85,17 @@ impl Shell {
 impl Shell {
     pub(super) fn action_available(&self, action: Action) -> bool {
         match action {
+            Action::Definition => {
+                self.definition.is_none()
+                    && self
+                        .workspace
+                        .as_ref()
+                        .and_then(Workspace::active)
+                        .is_some_and(|t| {
+                            t.document.path.extension().and_then(|s| s.to_str()) == Some("rs")
+                        })
+            }
+            Action::CancelLanguage => self.definition.is_some(),
             Action::Back => self.history.can_back() && self.restoring.is_none(),
             Action::Forward => self.history.can_forward() && self.restoring.is_none(),
             Action::RecentFiles | Action::QuickOpen => self.workspace.is_some(),

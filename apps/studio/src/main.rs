@@ -114,6 +114,7 @@ impl Studio {
         app
     }
     fn open_project(&mut self, path: PathBuf) {
+        self.shell.cancel_definition();
         let id = self.jobs.generation.fetch_add(1, Ordering::Relaxed) + 1;
         self.jobs.search_generation.fetch_add(1, Ordering::Relaxed);
         self.shell.loading = true;
@@ -234,6 +235,24 @@ impl Studio {
                             id,
                             search_id,
                         ));
+                    }
+                }
+                Effect::Definition => {
+                    if self.options.capture.is_some() {
+                        self.shell
+                            .error("Language server execution is disabled in capture mode");
+                        continue;
+                    }
+                    match self.shell.definition_query() {
+                        Ok(query) => {
+                            let ctx = ctx.clone();
+                            self.shell.set_definition(
+                                kedr_workbench::lsp::DefinitionRunner::start(query, move || {
+                                    ctx.request_repaint()
+                                }),
+                            );
+                        }
+                        Err(error) => self.shell.error(error),
                     }
                 }
                 Effect::RunTask(kind) => {

@@ -66,3 +66,11 @@ semantics, visual acuity preferences, Windows/macOS native interaction and
 Wayland behavior still need target-machine acceptance. This revision does not
 complete the design of planned database, profiler, server or collaboration hosts.
 Their real workflows need host-specific designs, not copies of IDE panels.
+
+## First semantic action
+
+Navigate → Go to definition (F12) now uses the [Rust language adapter](LANGUAGE.md).
+Language-analysis permission is a separate explicit dialog, never implicit in
+opening a workspace. Pending requests can be cancelled from Run; changed editor
+state discards them. This does not turn lexical colors into semantic highlighting
+or provide completion/refactoring.

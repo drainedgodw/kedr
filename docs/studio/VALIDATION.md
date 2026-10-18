@@ -298,3 +298,34 @@ refactoring, debugger, Git and terminal remain unimplemented; performance gains
 versus JetBrains and current cross-platform installers have not been measured.
 These are local acceptance results, not a claim that the new revision's hosted
 CI has completed.
+
+
+## On-demand Rust definitions — local acceptance
+
+This revision passed 140 default Rust workspace tests, plus the separately invoked
+ignored-by-default real_rust_analyzer_definition integration test, 18 Python
+installer tests, formatting, warnings-denied workspace/all-target Clippy, catalog
+and generated-keymap checks, and a native debug build. The live test uses the
+installed rust-analyzer and verifies unsaved source and target buffers, including
+a shifted target declaration and Unicode. The deterministic protocol fixtures are
+not substituted for this live analysis evidence.
+
+Tests cover framing limits, malformed/unrelated responses, initialization and
+indexing timeouts, cancellation, unsupported encoding, local target restrictions,
+revision/caret/workspace invalidation, preservation of dirty target buffers,
+separate language trust and navigation history. Startup waits for analyzer
+quiescence rather than querying before indexing completes.
+
+Thirty-three native captures were generated from the accepted debug binary.
+Seven impacted states were individually inspected in this pass: commands,
+keymap, minimum keymap, dark editor, and dark/compact/light language permission.
+The other 26 images were generated, not all re-reviewed. The three permission
+scenes are static capture states: they do not launch an analyzer.
+
+F12 is a fresh, explicitly authorized server request, not a persistent language
+session. Completion, references, semantic rename, a debugger, Git and a PTY
+terminal remain unimplemented. Only CodeCedar is runnable. No full JetBrains
+parity, performance advantage or new cross-platform installer acceptance is
+claimed. CI now explicitly requests rust-analyzer and the live integration test
+on Linux, Windows and macOS; local success does not establish hosted CI success.
+See LANGUAGE.md for the exact lifecycle, security and functionality limits.

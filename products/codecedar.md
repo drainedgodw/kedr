@@ -115,3 +115,11 @@ See [product direction](../docs/studio/PRODUCT.md), [shared UI contract](../docs
 and [validation](../docs/studio/VALIDATION.md).
 
 [All Kedr products](../README.md#product-catalog) · [Keyboard profiles](../docs/suite/KEYMAP.md)
+
+### First Rust language workflow
+
+Navigate → Go to definition / F12 uses an explicitly installed rust-analyzer
+after separate permission. Open unsaved Rust files are overlaid; stale results
+are discarded. Only scanned workspace targets are supported. See the
+[language adapter contract](../docs/studio/LANGUAGE.md) for setup, cancellation
+and limits. This is not persistent LSP, completion or semantic refactoring.

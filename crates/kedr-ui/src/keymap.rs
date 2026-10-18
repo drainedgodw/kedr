@@ -64,6 +64,7 @@ pub fn bindings(profile: Keymap, mac: bool) -> Vec<Binding> {
     let a = Modifiers::ALT;
     let none = Modifiers::NONE;
     let mut rows = vec![
+        (Definition, none, Key::F12, "F12", true),
         (
             RecentFiles,
             c,

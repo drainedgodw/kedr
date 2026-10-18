@@ -359,6 +359,23 @@ impl Shell {
                         self.editor_cache.focus_next = true;
                     }
                 }
+                Dialog::LanguageTrust => {
+                    ui.heading("Allow Rust language analysis?");
+                    ui.label("Go to definition starts rust-analyzer from PATH. It reads this workspace and receives the current unsaved Rust buffers.");
+                    if let Some(w) = &self.workspace {
+                        ui.label(RichText::new(w.project.root.display().to_string()).monospace().color(p.amber));
+                    }
+                    ui.label("Build scripts and procedural macros are disabled in this adapter, but the language server is not sandboxed and may invoke toolchain processes. Only continue for a trusted workspace.");
+                    ui.add_space(16.);
+                    ui.horizontal_wrapped(|ui| {
+                        if ui.button("Allow once").clicked() { self.effects.push(Effect::Definition); close = true; }
+                        if ui.button("Allow for this workspace session").clicked() {
+                            self.language_trusted = true;
+                            self.effects.push(Effect::Definition); close = true;
+                        }
+                        if ui.button("Cancel").clicked() { close = true; }
+                    });
+                }
                 Dialog::Trust(kind) => {
                     ui.heading("Allow project code to run?");
                     ui.label(format!("{} can execute this project's build scripts and dependencies.", kind.label()));
@@ -463,6 +480,7 @@ impl Shell {
             }
             "goto" => self.action(Action::GoToLine),
             "find" => self.action(Action::Replace),
+            "language-trust" => self.dialog = Some(Dialog::LanguageTrust),
             "trust" => self.action(Action::Check),
             "search" => {
                 self.action(Action::Search);

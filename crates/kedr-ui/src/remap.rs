@@ -117,7 +117,12 @@ pub fn override_id(profile: Keymap, mac: bool, action: Action) -> String {
 fn editor_only(action: Action) -> bool {
     matches!(
         action,
-        Action::Undo | Action::Redo | Action::SelectAll | Action::Duplicate | Action::DeleteLine
+        Action::Undo
+            | Action::Redo
+            | Action::SelectAll
+            | Action::Duplicate
+            | Action::DeleteLine
+            | Action::Definition
     )
 }
 pub fn resolved_bindings(

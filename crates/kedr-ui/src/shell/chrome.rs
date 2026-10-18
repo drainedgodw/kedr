@@ -40,6 +40,7 @@ impl Shell {
                                     (
                                         "Navigate",
                                         &[
+                                            Action::Definition,
                                             Action::Back,
                                             Action::Forward,
                                             Action::RecentFiles,
@@ -70,7 +71,10 @@ impl Shell {
                                             Action::Commands,
                                         ][..],
                                     ),
-                                    ("Run", &[Action::Check, Action::Test][..]),
+                                    (
+                                        "Run",
+                                        &[Action::Check, Action::Test, Action::CancelLanguage][..],
+                                    ),
                                 ] {
                                     ui.menu_button(title, |ui| {
                                         for &action in actions {

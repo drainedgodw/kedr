@@ -382,69 +382,74 @@ impl Shell {
         }
     }
     pub(super) fn welcome(&mut self, ui: &mut egui::Ui, p: Palette) {
-        ui.add_space(ui.available_height() * 0.14);
+        let width = 680.0_f32.min(ui.available_width() - 48.);
+        ui.add_space((ui.available_height() * 0.12).min(80.));
+        let mut chosen = None;
         ui.horizontal(|ui| {
-            ui.add_space((ui.available_width() - 600.).max(24.) / 2.);
+            ui.add_space(((ui.available_width() - width) / 2.).max(0.));
             ui.vertical(|ui| {
-                ui.label(
-                    RichText::new(self.product.to_uppercase())
-                        .color(p.accent)
-                        .strong(),
-                );
-                ui.add_space(16.);
-                ui.label(
-                    RichText::new("A clear space\nfor serious work.")
-                        .size(42.)
-                        .strong(),
-                );
-                ui.add_space(16.);
-                ui.label(
-                    RichText::new("Your code. Your machine. No subscriptions.")
-                        .size(18.)
-                        .color(p.muted),
-                );
-                ui.add_space(32.);
+                ui.set_width(width);
+                ui.heading("CodeCedar");
+                ui.label(RichText::new("Rust workspace").color(p.muted));
+                ui.add_space(24.);
                 ui.horizontal(|ui| {
                     if ui
                         .add(
-                            egui::Button::new(RichText::new("Open workspace").strong())
+                            egui::Button::new("Open workspace…")
                                 .fill(p.accent_soft)
-                                .min_size(Vec2::new(180., 48.)),
+                                .min_size(Vec2::new(160., 32.)),
                         )
                         .clicked()
                     {
                         self.action(Action::OpenProject);
                     }
-                    if ui.button("Commands").clicked() {
+                    if ui.button("Find action…").clicked() {
                         self.action(Action::Commands);
                     }
+                    if ui.button("Settings").clicked() {
+                        self.action(Action::Settings);
+                    }
                 });
-                ui.add_space(32.);
-                if !self.recent.is_empty() {
-                    ui.label(RichText::new("RECENT WORKSPACES").color(p.muted));
-                    let mut chosen = None;
-                    for path in self.recent.iter().take(4) {
-                        if ui
-                            .add(
-                                egui::Button::new(path.display().to_string())
-                                    .wrap_mode(egui::TextWrapMode::Truncate)
-                                    .min_size(Vec2::new(580., 44.)),
+                ui.add_space(28.);
+                ui.label(RichText::new("Recent workspaces").strong());
+                ui.separator();
+                if self.recent.is_empty() {
+                    ui.add_space(12.);
+                    ui.label(RichText::new("No recent workspaces").color(p.muted));
+                    ui.label("Open a folder containing your project to start editing.");
+                }
+                egui::ScrollArea::vertical()
+                    .id_salt("recent-workspaces")
+                    .max_height((ui.available_height() - 80.).max(80.))
+                    .show(ui, |ui| {
+                        for path in self.recent.iter().take(8) {
+                            let title = path.file_name().unwrap_or_default().to_string_lossy();
+                            if list_row(
+                                ui,
+                                ListRow {
+                                    title: &title,
+                                    detail: &path.display().to_string(),
+                                    shortcut: "",
+                                    selected: false,
+                                },
+                                p,
                             )
                             .clicked()
-                        {
-                            chosen = Some(path.clone());
+                            {
+                                chosen = Some(path.clone());
+                            }
                         }
-                    }
-                    if let Some(path) = chosen {
-                        self.request_project(path);
-                    }
-                }
+                    });
                 ui.add_space(24.);
                 ui.label(
-                    RichText::new("Early desktop build · semantic tools are still ahead")
+                    RichText::new("Project tasks run only with your permission.")
+                        .small()
                         .color(p.muted),
                 );
             });
         });
+        if let Some(path) = chosen {
+            self.request_project(path);
+        }
     }
 }

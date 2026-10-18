@@ -82,6 +82,12 @@ impl Studio {
             settings.theme = Theme::Light;
         }
         apply_theme(&cc.egui_ctx, settings.theme);
+        if options.capture.is_some() {
+            // Automated layout captures must not depend on the host pointer position.
+            // Normal interactive sessions keep the standard tooltip behavior.
+            cc.egui_ctx
+                .style_mut(|style| style.interaction.tooltip_delay = 3600.);
+        }
         let mut shell = Shell::new("CodeCedar — Kedr", settings);
         shell.recent = prefs
             .recent

@@ -3,12 +3,14 @@
 This is a development/acceptance plan, not a completed-feature claim. A category
 reference to a JetBrains product never implies compatibility, affiliation or
 feature parity. Work is tracked per actual capability, not per renamed binary.
+The concrete [independent reimplementation contract](REIMPLEMENTATION.md) separates
+reference observations, shipped subsets and next implementation gates.
 
 | Capability family | Current evidence | Required next gate |
 | --- | --- | --- |
 | Editing / local workspace | Early editor, guarded saves, bounded search | Recovery, async saves, file watching, fault injection |
-| UX / keyboard | Shared shell, commands and conflict-safe single-stroke remapping | Multi-stroke/modifier gestures, broader context dispatch, target-machine QA |
-| Language intelligence | Basic line colors only | Real versioned diagnostics, completion, navigation, rename and parser tests |
+| UX / keyboard | Shared desktop shell, bounded back/forward, recent files and conflict-safe single-stroke remapping | Multi-stroke/modifier gestures, broader context dispatch, target-machine QA |
+| Language intelligence | Basic line colors and saved-source Cargo-check diagnostics (not LSP) | Real versioned diagnostics, completion, navigation, rename and parser tests |
 | Refactoring / intentions | Not implemented | Semantic correctness, previews, cross-file transactions, rollback |
 | Build / test / run | Cargo check/test with explicit trust | Toolchain adapters, run configs, output lifecycle, test trees and coverage |
 | Debugging | Not implemented | DAP/native adapters, breakpoints, stepping, variables and integration tests |

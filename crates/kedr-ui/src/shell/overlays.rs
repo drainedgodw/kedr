@@ -5,119 +5,178 @@ impl Shell {
             return;
         };
         let (mut close, mut chosen, mut path) = (false, None, None);
-        egui::Modal::new(Id::new("kedr-palette")).show(ctx, |ui| {
-            ui.set_width(620.0_f32.min(ctx.content_rect().width() - 80.));
-            ui.heading(if palette.files {
-                "Go to file"
-            } else {
-                "Commands"
-            });
-            let r = ui.add(
-                singleline(&mut palette.query)
-                    .hint_text(if palette.files {
-                        "Type a file name or path…"
+        egui::Modal::new(Id::new("kedr-palette"))
+            .frame(
+                egui::Frame::popup(&ctx.style())
+                    .inner_margin(12)
+                    .corner_radius(6),
+            )
+            .show(ctx, |ui| {
+                ui.set_width(620.0_f32.min(ctx.content_rect().width() - 64.));
+                ui.horizontal(|ui| {
+                    ui.heading(if palette.recent {
+                        "Recent files"
+                    } else if palette.files {
+                        "Go to file"
                     } else {
-                        "What would you like to do?"
-                    })
-                    .char_limit(256)
-                    .desired_width(f32::INFINITY),
-            );
-            if palette.focus {
-                r.request_focus();
-                palette.focus = false;
-            }
-            if r.changed() {
-                palette.selected = 0;
-            }
-            let files = if palette.files {
-                self.workspace
-                    .as_ref()
-                    .map(|w| w.quick_files(&palette.query, 10))
-                    .unwrap_or_default()
-            } else {
-                Vec::new()
-            };
-            let commands: Vec<_> = if palette.files {
-                Vec::new()
-            } else {
-                Action::ALL
-                    .into_iter()
-                    .filter(|a| {
-                        a.label()
-                            .to_lowercase()
-                            .contains(&palette.query.to_lowercase())
-                    })
-                    .collect()
-            };
-            let count = if palette.files {
-                files.len()
-            } else {
-                commands.len()
-            };
-            if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::ArrowDown)) {
-                palette.selected = (palette.selected + 1).min(count.saturating_sub(1));
-            }
-            if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::ArrowUp)) {
-                palette.selected = palette.selected.saturating_sub(1);
-            }
-            let enter = ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter));
-            if count == 0 {
-                ui.label(if self.workspace.is_none() && palette.files {
-                    "Open a workspace to browse its files."
-                } else {
-                    "No matching results."
+                        "Find action"
+                    });
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        ui.label(RichText::new("Esc to close").small().color(p.muted));
+                    });
                 });
-            }
-            egui::ScrollArea::vertical()
-                .max_height(440.)
-                .show(ui, |ui| {
-                    for i in 0..count {
-                        let label = if palette.files {
-                            files[i]
-                                .strip_prefix(&self.workspace.as_ref().unwrap().project.root)
-                                .unwrap()
-                                .display()
-                                .to_string()
+                ui.add_space(6.);
+                let response = ui.add(
+                    singleline(&mut palette.query)
+                        .hint_text(if palette.files {
+                            "File name or path"
                         } else {
-                            format!("{}    {}", commands[i].label(), self.shortcut(commands[i]))
-                        };
-                        if ui
-                            .add(
-                                egui::Button::new(label)
-                                    .selected(i == palette.selected)
-                                    .wrap_mode(egui::TextWrapMode::Truncate)
-                                    .min_size(Vec2::new(ui.available_width(), 44.)),
-                            )
-                            .clicked()
-                            || (enter && i == palette.selected)
-                        {
-                            if palette.files {
-                                path = Some(files[i].clone());
-                            } else {
-                                chosen = Some(commands[i]);
-                            }
-                            close = true;
-                        }
-                    }
-                });
-            ui.add_space(8.);
-            ui.horizontal(|ui| {
-                ui.label(
-                    RichText::new("Up / Down navigate · Enter open · Esc cancel").color(p.muted),
+                            "Action name"
+                        })
+                        .char_limit(256)
+                        .desired_width(f32::INFINITY),
                 );
-                if ui.button("Cancel").clicked() {
-                    close = true;
+                if palette.focus {
+                    response.request_focus();
+                    palette.focus = false;
                 }
+                let mut reveal = response.changed();
+                if response.changed() {
+                    palette.selected = 0;
+                }
+                let files = if palette.files {
+                    self.palette_files(&palette.query, palette.recent)
+                } else {
+                    Vec::new()
+                };
+                let commands: Vec<_> = if palette.files {
+                    Vec::new()
+                } else {
+                    Action::ALL
+                        .into_iter()
+                        .filter(|a| {
+                            a.label()
+                                .to_lowercase()
+                                .contains(&palette.query.to_lowercase())
+                        })
+                        .collect()
+                };
+                let count = if palette.files {
+                    files.len()
+                } else {
+                    commands.len()
+                };
+                palette.selected = palette.selected.min(count.saturating_sub(1));
+                if !palette.files && count > 0 && !self.action_available(commands[palette.selected])
+                {
+                    palette.selected = commands
+                        .iter()
+                        .position(|action| self.action_available(*action))
+                        .unwrap_or(0);
+                }
+                if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::ArrowDown)) {
+                    palette.selected = (palette.selected + 1).min(count.saturating_sub(1));
+                    reveal = true;
+                }
+                if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::ArrowUp)) {
+                    palette.selected = palette.selected.saturating_sub(1);
+                    reveal = true;
+                }
+                let enter = ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter));
+                ui.add_space(4.);
+                if count == 0 {
+                    ui.label(if palette.recent {
+                        "No recently opened files in this workspace."
+                    } else if palette.files && self.workspace.is_none() {
+                        "Open a workspace to browse files."
+                    } else {
+                        "No matching results."
+                    });
+                }
+                egui::ScrollArea::vertical()
+                    .id_salt("palette-results")
+                    .max_height((ctx.content_rect().height() - 200.).clamp(120., 420.))
+                    .show(ui, |ui| {
+                        ui.spacing_mut().item_spacing.y = 1.;
+                        for i in 0..count {
+                            let (title, detail, hint, enabled) = if palette.files {
+                                let relative = files[i]
+                                    .strip_prefix(&self.workspace.as_ref().unwrap().project.root)
+                                    .unwrap();
+                                (
+                                    files[i]
+                                        .file_name()
+                                        .unwrap_or_default()
+                                        .to_string_lossy()
+                                        .into_owned(),
+                                    relative.to_string_lossy().into_owned(),
+                                    String::new(),
+                                    true,
+                                )
+                            } else {
+                                (
+                                    commands[i].label().into(),
+                                    String::new(),
+                                    self.shortcut(commands[i]),
+                                    self.action_available(commands[i]),
+                                )
+                            };
+                            let response = ui
+                                .add_enabled_ui(enabled, |ui| {
+                                    list_row(
+                                        ui,
+                                        ListRow {
+                                            title: &title,
+                                            detail: &detail,
+                                            shortcut: &hint,
+                                            selected: i == palette.selected,
+                                        },
+                                        p,
+                                    )
+                                })
+                                .inner;
+                            if reveal && i == palette.selected {
+                                response.scroll_to_me(Some(Align::Center));
+                            }
+                            let clicked = response.clicked();
+                            if palette.files {
+                                response.on_hover_text(files[i].display().to_string());
+                            }
+                            if enabled && (clicked || (enter && i == palette.selected)) {
+                                if palette.files {
+                                    path = Some(files[i].clone());
+                                } else {
+                                    chosen = Some(commands[i]);
+                                }
+                                close = true;
+                            }
+                        }
+                    });
+                ui.separator();
+                ui.horizontal(|ui| {
+                    ui.label(
+                        RichText::new("Up / Down Select     Enter Open")
+                            .small()
+                            .color(p.muted),
+                    );
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        ui.label(
+                            RichText::new(format!("{count} results"))
+                                .small()
+                                .color(p.muted),
+                        );
+                    });
+                });
             });
-        });
         if !close {
             self.palette = Some(palette);
         }
-        if let Some(a) = chosen {
-            self.action(a);
+        if let Some(action) = chosen {
+            self.action(action);
         }
         if let Some(path) = path {
             self.pending_hit = None;
+            self.pending_diagnostic = None;
             self.effects.push(Effect::OpenFile(path));
         }
     }
@@ -161,12 +220,14 @@ impl Shell {
                 }
             }
         }
-        egui::Modal::new(Id::new("kedr-dialog")).show(ctx, |ui| {
+        egui::Modal::new(Id::new("kedr-dialog"))
+            .frame(egui::Frame::popup(&ctx.style()).inner_margin(16).corner_radius(6))
+            .show(ctx, |ui| {
             ui.set_width(520.0_f32.min(ctx.content_rect().width() - 80.));
             match &dialog {
                 Dialog::Keymap => {
                     ui.heading("Keyboard shortcuts");
-                    ui.label(RichText::new("Working actions only. Unsupported IDE features are not fake shortcuts.").color(p.muted));
+                    ui.label(RichText::new("Search and customize the implemented actions.").color(p.muted));
                     ui.horizontal_wrapped(|ui| {
                         for profile in [crate::Keymap::JetBrains, crate::Keymap::Kedr] {
                             if ui.selectable_label(self.settings.keymap == profile, profile.name()).clicked() {
@@ -188,7 +249,7 @@ impl Shell {
                                     ui.label(RichText::new(&hint).color(p.accent));
                                 });
                                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                    if ui.add(egui::Button::new("Edit").min_size(Vec2::new(64.,44.))).clicked() {
+                                    if ui.add(egui::Button::new("Edit").min_size(Vec2::new(64.,28.))).clicked() {
                                         let id = crate::override_id(self.settings.keymap, cfg!(target_os = "macos"), action);
                                         self.shortcut_draft = self.settings.shortcuts.get(&id).cloned().unwrap_or_else(|| {
                                             crate::bindings(self.settings.keymap, cfg!(target_os = "macos")).into_iter().find(|b| b.action == action).map_or_else(String::new, |b| crate::Chord {key:b.key,modifiers:b.modifiers}.label(cfg!(target_os = "macos")))
@@ -203,7 +264,7 @@ impl Shell {
                             ui.separator();
                         }
                     });
-                    ui.label(RichText::new("Edit or record a single shortcut. Conflicts are rejected; typing and clipboard keys stay protected. Full IDE parity is still planned.").color(p.muted));
+                    ui.label(RichText::new("One shortcut per action. Conflicting assignments are rejected.").color(p.muted));
                     ui.horizontal_wrapped(|ui| {
                         if ui.button("Done").clicked() { close = true; self.editor_cache.focus_next = true; }
                         if ui.button("Reset this profile").clicked() {
@@ -221,7 +282,7 @@ impl Shell {
                     ui.add_space(12.);
                     ui.label(if cfg!(target_os = "macos") {"Example: Cmd+Alt+L or F8"} else {"Example: Ctrl+Alt+L or F8"});
                     ui.add_enabled(!self.record_shortcut, singleline(&mut self.shortcut_draft).hint_text("No shortcut").char_limit(96).desired_width(f32::INFINITY));
-                    if ui.add(egui::Button::new(if self.record_shortcut {"Press keys… Esc cancels recording"} else {"Record keys"}).min_size(Vec2::new(200.,44.))).clicked() {
+                    if ui.add(egui::Button::new(if self.record_shortcut {"Press keys… Esc cancels recording"} else {"Record keys"}).min_size(Vec2::new(200.,32.))).clicked() {
                         self.record_shortcut = !self.record_shortcut;
                     }
                     ui.add_space(8.);
@@ -250,29 +311,30 @@ impl Shell {
                     if self.goto_focus { response.request_focus(); self.goto_focus = false; }
                     let enter = ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter));
                     ui.horizontal(|ui| {
-                        if ui.add(egui::Button::new("Go").min_size(Vec2::splat(44.))).clicked() || enter {
+                        if ui.add(egui::Button::new("Go").min_size(Vec2::new(48.,28.))).clicked() || enter {
                             let parts: Vec<_> = self.goto.trim().split(':').collect();
                             let result = if parts.len() <= 2 {
                                 parts[0].parse::<usize>().ok().zip(if parts.len() == 2 { parts[1].parse().ok() } else { Some(1) })
                             } else { None };
                             if let Some((row, col)) = result {
+                                self.checkpoint();
                                 let result = self.workspace.as_mut().and_then(Workspace::active_mut).ok_or_else(|| "Open a file first".to_string()).and_then(|t| t.goto(row, col));
-                                match result { Ok(()) => { close = true; self.editor_cache.focus_next = true; }, Err(e) => self.error(e) }
+                                match result { Ok(()) => { self.checkpoint(); close = true; self.editor_cache.focus_next = true; }, Err(e) => self.error(e) }
                             } else { self.error("Enter a valid line or line:column"); }
                         }
                         if ui.button("Cancel").clicked() { close = true; }
                     });
                 }
                 Dialog::Settings => {
-                    ui.heading("Make it yours");
-                    ui.label(RichText::new("One visual language across every Kedr product.").color(p.muted));
+                    ui.heading("Settings");
+                    ui.label(RichText::new("Editor appearance and keyboard").color(p.muted));
                     ui.add_space(16.);
                     ui.label("Appearance");
                     ui.horizontal(|ui| {
-                        for (theme, label) in [(Theme::Dark, "Midnight"), (Theme::Light, "Daylight")] {
+                        for (theme, label) in [(Theme::Dark, "Dark"), (Theme::Light, "Light")] {
                             if ui.add(egui::Button::new(label)
                                 .selected(self.settings.theme == theme)
-                                .min_size(Vec2::new(170., 44.))).clicked() {
+                                .min_size(Vec2::new(150., 32.))).clicked() {
                                 self.settings.theme = theme;
                                 apply_theme(ctx, theme);
                                 self.effects.push(Effect::PreferencesChanged);
@@ -373,6 +435,10 @@ impl Shell {
         match state {
             "palette" => self.action(Action::QuickOpen),
             "commands" => self.action(Action::Commands),
+            "recent" => {
+                self.observe_location();
+                self.action(Action::RecentFiles);
+            }
             "settings" => self.action(Action::Settings),
             "keymap" => self.action(Action::Keybindings),
             "remap" | "remap-conflict" | "remap-record" => {

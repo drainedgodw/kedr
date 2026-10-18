@@ -65,6 +65,31 @@ pub fn bindings(profile: Keymap, mac: bool) -> Vec<Binding> {
     let none = Modifiers::NONE;
     let mut rows = vec![
         (
+            RecentFiles,
+            c,
+            Key::E,
+            if mac { "Cmd E" } else { "Ctrl E" },
+            false,
+        ),
+        (
+            Back,
+            c | a,
+            Key::ArrowLeft,
+            if mac { "Cmd Alt Left" } else { "Ctrl Alt Left" },
+            false,
+        ),
+        (
+            Forward,
+            c | a,
+            Key::ArrowRight,
+            if mac {
+                "Cmd Alt Right"
+            } else {
+                "Ctrl Alt Right"
+            },
+            false,
+        ),
+        (
             OpenProject,
             c,
             Key::O,

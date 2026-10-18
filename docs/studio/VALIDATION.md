@@ -264,3 +264,37 @@ workspace, including escaping symlinks. Saved edits or external changes after a
 check can still make locations stale: save and rerun check. Cargo Test remains
 console based. Cancellation targets the Cargo child and is not a process-tree
 sandbox. See DIAGNOSTICS.md for scope and limits.
+
+## Workbench redesign and navigation — local acceptance
+
+This revision passed 126 Rust workspace tests, 18 Python installer tests,
+formatting, warnings-denied workspace/all-target Clippy, catalog and generated
+keymap checks, and a native debug build. Ten new tests cover bounded navigation
+history, explicit same-file checkpoints, forward-branch replacement, open and
+closed tab restoration, workspace-local MRU filtering/reset, and preservation of
+dirty buffer contents. No dependency was added.
+
+Thirty native captures were generated from the accepted debug binary and
+individually inspected (four unchanged editor/welcome images were byte-identical
+to their individually inspected prior captures). Actual capture dimensions were
+1440x900, 1200x800, 900x640 and 760x520. Recent files and minimum editor/keymap
+states extend the matrix from 27 to 30. Capture mode alone delays incidental
+hover tooltips for deterministic layout inspection; interactive tooltips remain
+unchanged. Problems/Output screenshots use explicitly labeled fixtures, not a
+live compiler run. Clipped long source lines and partially visible scroll-list
+rows are intentional viewport clipping, not evidence of semantic navigation.
+
+The redesigned native shell has flat menus, an active-tab underline, neutral
+light/dark themes, restrained controls, path copying, and flat file/action
+palettes with right-aligned shortcuts. Back/forward restores file/caret locations;
+recent files are session/workspace local. Historical coordinates may become
+invalid after edits and are rejected rather than silently guessed. History does
+not snapshot file contents or provide transactional rollback after an I/O error.
+
+Public JetBrains navigation/recent-file documentation informed the independently
+implemented workflow subset; no proprietary binary/source reverse engineering
+or full product parity was performed. Only CodeCedar is runnable. LSP, semantic
+refactoring, debugger, Git and terminal remain unimplemented; performance gains
+versus JetBrains and current cross-platform installers have not been measured.
+These are local acceptance results, not a claim that the new revision's hosted
+CI has completed.

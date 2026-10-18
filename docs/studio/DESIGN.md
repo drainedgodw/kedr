@@ -1,42 +1,68 @@
-# Shared Kedr interface contract
+# Shared desktop workbench design contract
 
-The interface is a reusable shell, not a screenshot copied into each application.
-Desktop products reuse `kedr-ui::Shell` where appropriate. Service/web hosts
-require the same token/interaction contract with their own actual backend and host.
+This is an independently implemented Rust/egui shell, not JetBrains source code,
+assets, an affiliation claim, or completed suite-wide feature parity. Only
+CodeCedar currently hosts it as a runnable application.
 
-## Visual language
+## Surface and density
 
-Midnight and Daylight: quiet neutral surfaces, one blue accent, restrained borders,
-8-pixel control corners, 12-pixel dialogs, 14-pixel interface text and 15-pixel code by
-default. The spacing scale is 4/8/12/16/24/32/48/64. Icons are native vector strokes,
-not missing-font pictograms. Success/warning colors retain textual labels.
+Use neutral graphite/white surfaces, a restrained blue selection/navigation
+accent, textual error/warning states, 3px control corners and 6px modal corners.
+Body/buttons are 13px; code defaults to 15px with user scaling. Ordinary controls
+are 28px, icon targets 32px, header 44px, status 26px and explorer rows 28px.
+This is a mouse/keyboard desktop density, not touch acceptance. Dialogs have 16px
+body margins; palettes 12px. Do not use marketing cards, slogans, glows or a giant
+brand header in the workspace.
 
-The primary reading area is code. Avoid glowing gradients, decorative cards,
-product logos in code panes or dashboards of unrelated statistics. Leave room
-between actions. A selected file/tab must be clear without relying on color alone.
+## Hierarchy
 
-## Stable interaction vocabulary
+- Flat File/Edit/Navigate/Search/View/Run menu bar; shortcut hints align on the
+  right of menu items. Only implemented actions appear. Back/forward availability
+  reflects the navigation history; Cargo actions require a scanned Cargo.toml.
+- Tabs group file label, unsaved marker and close target. The active tab has a
+  distinct canvas and underline. Middle-click closes through the same guarded
+  close workflow. Tab names have full-path hover labels.
+- The path strip is compact, with document language and relative path; its
+  context menu copies either relative or absolute path. It is not a semantic
+  symbol breadcrumb and is not presented as one.
+- Explorer/search are resizable, clipped and bounded. Selected source stays
+  distinguishable. The main reading area belongs to code.
+- Bottom Problems/Output shows real Cargo diagnostics/output. It is a resizable
+  tool window, not a terminal or a debugger.
+- Settings, shortcuts, trust and unsaved-file decisions use the same typography,
+  margins and neutral surfaces. Project execution still requires explicit trust.
 
-- Top: brand, workspace, File/Edit menus, file/command search and real toolchain action.
-- Left rail: Files, saved-project Search, Commands, Output and Settings.
-- Explorer: left-aligned hierarchy; active file visible; resizable sidebar; bounded rows.
-- Center: tabs, breadcrumb and viewport-rendered editor; no full-buffer TextEdit copy.
-- Bottom: real task output and compact document position/encoding/save state.
-- Modal decisions: palette, appearance, unsaved edits and explicit project trust.
+## Lists and keyboard navigation
 
-Quick file navigation and commands are distinct modes of the same discoverable
-palette. Destructive close/switch/quit paths preserve edits until a user decision.
-No project command runs on open. Trust is session-scoped and not silently persisted.
+Go to file, Recent files and Find action use flat, left-aligned rows instead of
+large card-shaped buttons. File rows show file name plus relative path. Action
+rows reserve a separate right-aligned shortcut column, with clipped titles.
+The selected row is singular; keyboard movement scrolls it into view without
+continually fighting manual scrolling. Escape closes, Enter activates; disabled
+actions cannot execute. Empty and filtered-empty states explain what happened.
 
-## Native and responsive scope
+Recent files are workspace/session-local, deduplicated, at most 50, most recent
+first. Quick-open uses recent order for an empty query and fuzzy project-file
+matching for a query. Navigation history is bounded to 128 points; ordinary
+caret motion updates a point, while file switches/explicit location jumps make
+checkpoints. Back/forward can reopen a cleanly closed file using background I/O.
+It restores validated Unicode-scalar coordinates, not file snapshots or old text.
+Unsaved buffers are retained. Invalid/missing locations report errors rather than
+silently saving, discarding or guessing a location. A new branch drops forward
+history. Switching workspaces clears this session-local navigation state.
 
-Desktop window minimum: 760x520. QA includes 1440x900 and 900x640, both appearance
-themes, palette/settings/search/trust/unsaved/error/welcome states. This is not a
-mobile application or browser mock. Native folder-picking and actual OS-level IME/
-screen-reader usage still require manual checks on target machines.
+## Start screen
 
-Desktop revision 3 uses 28-pixel ordinary controls, 32-pixel icon targets, a
-44-pixel header and 28-pixel explorer rows with accessible names. This density is
-intended for mouse/keyboard desktop work, not touch-first usage. The custom
-editor is one large keyboard/pointer target with clipboard/composition events;
-complete assistive text semantics are a later release gate, not an asserted feature.
+Show product name, Open workspace, Find action, Settings and recent workspace
+rows. No subscription slogan or oversized inspirational copy. A workspace with no
+open file shows an actionable empty state with the actual configured shortcut.
+
+## Validation and limits
+
+Target minimum is 760x520; normal/compact QA is 1440x900 and 900x640 in both
+appearance themes. Captures are native windows, not HTML mockups. Screenshots
+establish layout observations only. Real OS-level IME, screen-reader text
+semantics, visual acuity preferences, Windows/macOS native interaction and
+Wayland behavior still need target-machine acceptance. This revision does not
+complete the design of planned database, profiler, server or collaboration hosts.
+Their real workflows need host-specific designs, not copies of IDE panels.

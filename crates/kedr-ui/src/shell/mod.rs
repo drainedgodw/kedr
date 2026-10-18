@@ -1,10 +1,12 @@
 mod chrome;
+mod navigation;
 mod overlays;
 mod panels;
 use crate::{
-    EditorCache, Icon, Palette, Theme, apply_theme, editor, icon_button, singleline, wordmark,
+    EditorCache, Icon, ListRow, Palette, Theme, apply_theme, editor, icon_button, list_row,
+    singleline, wordmark,
 };
-use egui::{Align, Align2, Color32, Context, FontId, Id, Key, Layout, Modifiers, RichText, Vec2};
+use egui::{Align, Align2, Context, FontId, Id, Key, Layout, Modifiers, RichText, Vec2};
 use kedr_core::document::Document;
 use kedr_workbench::{
     DiagnosticLocation, FileNode, SearchHit, SearchReport, TaskKind, TaskPhase, TaskRunner,
@@ -16,6 +18,9 @@ use std::{
 };
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action {
+    Back,
+    Forward,
+    RecentFiles,
     Project,
     Replace,
     FindNext,
@@ -48,7 +53,10 @@ pub enum Action {
     Settings,
 }
 impl Action {
-    pub const ALL: [Self; 30] = [
+    pub const ALL: [Self; 33] = [
+        Self::Back,
+        Self::Forward,
+        Self::RecentFiles,
         Self::Project,
         Self::Replace,
         Self::FindNext,
@@ -82,6 +90,9 @@ impl Action {
     ];
     pub fn label(self) -> &'static str {
         match self {
+            Self::Back => "Navigate back",
+            Self::Forward => "Navigate forward",
+            Self::RecentFiles => "Recent files",
             Self::Project => "Show project files",
             Self::Replace => "Replace in file",
             Self::FindNext => "Find next occurrence",
@@ -116,6 +127,9 @@ impl Action {
     }
     pub fn id(self) -> &'static str {
         match self {
+            Self::Back => "navigation.back",
+            Self::Forward => "navigation.forward",
+            Self::RecentFiles => "navigation.recent",
             Self::Project => "workspace.project",
             Self::OpenProject => "workspace.open",
             Self::QuickOpen => "navigation.file",
@@ -207,6 +221,7 @@ enum Dialog {
 }
 struct PaletteState {
     files: bool,
+    recent: bool,
     query: String,
     selected: usize,
     focus: bool,
@@ -250,6 +265,9 @@ pub struct Shell {
     pending_diagnostic: Option<DiagnosticLocation>,
     problems_view: bool,
     active_path: Option<PathBuf>,
+    history: kedr_workbench::NavigationHistory,
+    recent_files: Vec<PathBuf>,
+    restoring: Option<kedr_workbench::Location>,
 }
 impl Shell {
     pub fn new(product: &'static str, mut settings: Settings) -> Self {
@@ -305,12 +323,19 @@ impl Shell {
             pending_diagnostic: None,
             problems_view: true,
             active_path: None,
+            history: Default::default(),
+            recent_files: Vec::new(),
+            restoring: None,
         }
     }
     pub fn error(&mut self, message: impl Into<String>) {
+        self.restoring = None;
         self.error = Some(message.into());
     }
     pub fn set_workspace(&mut self, w: Workspace) {
+        self.history = Default::default();
+        self.recent_files.clear();
+        self.restoring = None;
         self.workspace = Some(w);
         self.trusted = false;
         self.task = None;
@@ -380,6 +405,7 @@ impl Shell {
             self.error("Diagnostic source is outside the scanned workspace or no longer exists");
             return;
         };
+        self.checkpoint();
         self.pending_hit = None;
         self.pending_diagnostic = Some(DiagnosticLocation {
             file: path.clone(),
@@ -388,6 +414,17 @@ impl Shell {
         self.effects.push(Effect::OpenFile(path));
     }
     fn finish_navigation(&mut self) {
+        if let Some(location) = self.restoring.clone()
+            && let Some(tab) = self.workspace.as_mut().and_then(Workspace::active_mut)
+            && tab.document.path == location.path
+        {
+            self.restoring = None;
+            // History is a location, not a snapshot. Validate through the editor goto contract; never guess an invalid position.
+            if let Err(error) = tab.goto(location.line, location.column) {
+                self.error(error);
+            }
+        }
+        let jump = self.pending_diagnostic.is_some() || self.pending_hit.is_some();
         if let Some(location) = &self.pending_diagnostic
             && let Some(tab) = self.workspace.as_mut().and_then(Workspace::active_mut)
             && tab.document.path == location.file
@@ -411,6 +448,10 @@ impl Shell {
                 self.error("Search result changed; search again before navigating");
             }
         }
+        if jump {
+            self.checkpoint();
+        }
+        self.observe_location();
     }
     pub fn request_project(&mut self, path: PathBuf) {
         if self.workspace.as_mut().is_some_and(|w| w.dirty_count() > 0) {
@@ -427,7 +468,10 @@ impl Shell {
         }
     }
     pub fn action(&mut self, a: Action) {
+        self.observe_location();
         match a {
+            Action::Back => self.history_step(false),
+            Action::Forward => self.history_step(true),
             Action::Keybindings => self.dialog = Some(Dialog::Keymap),
             Action::GoToLine => {
                 self.goto.clear();
@@ -491,9 +535,10 @@ impl Shell {
                 }
             }
             Action::OpenProject => self.effects.push(Effect::PickProject),
-            Action::QuickOpen | Action::Commands => {
+            Action::QuickOpen | Action::Commands | Action::RecentFiles => {
                 self.palette = Some(PaletteState {
-                    files: a == Action::QuickOpen,
+                    files: a != Action::Commands,
+                    recent: a == Action::RecentFiles,
                     query: String::new(),
                     selected: 0,
                     focus: true,
@@ -694,6 +739,7 @@ impl Shell {
         }
     }
     pub fn show(&mut self, ctx: &Context) -> Vec<Effect> {
+        self.observe_location();
         self.refresh_shortcuts();
         self.shortcuts(ctx);
         let p = self.settings.theme.palette();
@@ -750,14 +796,35 @@ impl Shell {
                         .unwrap_or(&tab.document.path)
                         .to_string_lossy()
                         .into_owned();
-                    ui.horizontal(|ui| {
-                        ui.add_space(20.);
-                        ui.add(
-                            egui::Label::new(RichText::new(&relative).color(p.muted)).truncate(),
-                        )
-                        .on_hover_text(relative);
-                    });
-                    ui.add_space(2.);
+                    egui::Frame::new()
+                        .fill(p.canvas)
+                        .inner_margin(egui::Margin::symmetric(14, 4))
+                        .show(ui, |ui| {
+                            ui.horizontal(|ui| {
+                                ui.label(
+                                    RichText::new(language(&tab.document.path))
+                                        .small()
+                                        .color(p.accent),
+                                );
+                                ui.label(RichText::new("/").color(p.muted));
+                                let response = ui
+                                    .add(
+                                        egui::Label::new(RichText::new(&relative).color(p.muted))
+                                            .truncate(),
+                                    )
+                                    .on_hover_text(tab.document.path.display().to_string());
+                                response.context_menu(|ui| {
+                                    if ui.button("Copy relative path").clicked() {
+                                        ui.ctx().copy_text(relative.clone());
+                                        ui.close();
+                                    }
+                                    if ui.button("Copy absolute path").clicked() {
+                                        ui.ctx().copy_text(tab.document.path.display().to_string());
+                                        ui.close();
+                                    }
+                                });
+                            });
+                        });
                     if let Some(e) = editor(
                         ui,
                         tab,
@@ -771,8 +838,11 @@ impl Shell {
                 } else {
                     ui.vertical_centered(|ui| {
                         ui.add_space(ui.available_height() * 0.3);
-                        ui.heading("Make room for your next idea.");
-                        ui.label("Choose a file in the sidebar or press Ctrl P.");
+                        ui.heading("No file open");
+                        ui.label(format!(
+                            "Choose a project file or use {}.",
+                            self.shortcut(Action::QuickOpen)
+                        ));
                         if ui.button("Go to file").clicked() {
                             self.action(Action::QuickOpen);
                         }

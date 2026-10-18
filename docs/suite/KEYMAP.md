@@ -6,6 +6,9 @@ The default profile is a **JetBrains-compatible subset**, not full keymap or fea
 
 | Working action / ID | Compatible Windows/Linux | Compatible macOS | Classic Windows/Linux | Classic macOS |
 | --- | --- | --- | --- | --- |
+| Navigate back / `navigation.back` | Ctrl Alt Left | Cmd Alt Left | Ctrl Alt Left | Cmd Alt Left |
+| Navigate forward / `navigation.forward` | Ctrl Alt Right | Cmd Alt Right | Ctrl Alt Right | Cmd Alt Right |
+| Recent files / `navigation.recent` | Ctrl E | Cmd E | Ctrl E | Cmd E |
 | Show project files / `workspace.project` | Alt 1 | Cmd 1 | Ctrl 1 | Cmd 1 |
 | Replace in file / `search.replace` | Ctrl R | Cmd R | Ctrl R | Cmd R |
 | Find next occurrence / `search.next` | F3 | Cmd G | F3 | F3 |

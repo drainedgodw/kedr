@@ -22,6 +22,8 @@ pub enum Icon {
     Command,
     Play,
     Close,
+    Back,
+    Forward,
 }
 /// Shared single-line input with the same pointer target as other controls.
 pub(crate) fn singleline(text: &mut String) -> egui::TextEdit<'_> {
@@ -55,6 +57,12 @@ pub fn icon_button(
             .line_segment([pt(a.0, a.1), pt(b.0, b.1)], stroke)
     };
     match kind {
+        Icon::Back | Icon::Forward => {
+            let sign = if matches!(kind, Icon::Back) { -1. } else { 1. };
+            line((-6. * sign, 0.), (6. * sign, 0.));
+            line((1. * sign, -5.), (6. * sign, 0.));
+            line((1. * sign, 5.), (6. * sign, 0.));
+        }
         Icon::Search => {
             ui.painter().circle_stroke(pt(-2., -2.), 5., stroke);
             line((2., 2.), (7., 7.));
@@ -120,4 +128,70 @@ pub fn wordmark(ui: &mut Ui, p: Palette) {
     });
     ui.add(egui::Image::new((texture.id(), Vec2::splat(32.))));
     ui.label(egui::RichText::new("KEDR").size(18.).strong().color(p.text));
+}
+
+/// Compact workbench row shared by palettes and recent workspaces.
+pub(crate) struct ListRow<'a> {
+    pub title: &'a str,
+    pub detail: &'a str,
+    pub shortcut: &'a str,
+    pub selected: bool,
+}
+pub(crate) fn list_row(ui: &mut Ui, row: ListRow<'_>, p: Palette) -> egui::Response {
+    let height = if row.detail.is_empty() { 32. } else { 48. };
+    let response = ui.add(
+        egui::Button::new("")
+            .selected(row.selected)
+            .frame(row.selected)
+            .min_size(Vec2::new(ui.available_width(), height)),
+    );
+    let rect = response.rect.shrink2(Vec2::new(10., 0.));
+    let painter = ui.painter_at(rect);
+    let trailing = ui.fonts_mut(|f| {
+        f.layout_no_wrap(
+            row.shortcut.into(),
+            egui::FontId::proportional(12.),
+            p.muted,
+        )
+    });
+    let reserve = if row.shortcut.is_empty() {
+        0.
+    } else {
+        trailing.size().x + 20.
+    };
+    let width = (rect.width() - reserve).max(1.);
+    for (text, y, color, size) in if row.detail.is_empty() {
+        vec![(row.title, (height - 16.) / 2., p.text, 13.)]
+    } else {
+        vec![
+            (row.title, 6., p.text, 13.),
+            (row.detail, 26., p.muted, 12.),
+        ]
+    } {
+        let mut job = egui::text::LayoutJob::simple_singleline(
+            text.into(),
+            egui::FontId::proportional(size),
+            color,
+        );
+        job.wrap.max_width = width;
+        job.wrap.max_rows = 1;
+        let galley = ui.fonts_mut(|f| f.layout_job(job));
+        painter.galley(rect.left_top() + Vec2::new(0., y), galley, color);
+    }
+    painter.galley(
+        egui::pos2(
+            rect.right() - trailing.size().x,
+            rect.center().y - trailing.size().y / 2.,
+        ),
+        trailing,
+        p.muted,
+    );
+    response.widget_info(|| {
+        egui::WidgetInfo::labeled(
+            egui::WidgetType::Button,
+            true,
+            format!("{} {} {}", row.title, row.detail, row.shortcut),
+        )
+    });
+    response
 }

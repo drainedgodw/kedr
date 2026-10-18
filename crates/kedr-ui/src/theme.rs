@@ -25,14 +25,14 @@ impl Theme {
         let c = Color32::from_rgb;
         match self {
             Self::Dark => Palette {
-                canvas: c(18, 22, 29),
-                surface: c(25, 30, 39),
-                raised: c(35, 42, 54),
-                border: c(49, 58, 73),
-                text: c(224, 230, 239),
-                muted: c(168, 180, 198),
-                accent: c(121, 181, 248),
-                accent_soft: c(35, 53, 76),
+                canvas: c(30, 31, 34),
+                surface: c(43, 45, 48),
+                raised: c(57, 59, 64),
+                border: c(64, 66, 72),
+                text: c(223, 225, 229),
+                muted: c(157, 160, 168),
+                accent: c(115, 161, 250),
+                accent_soft: c(46, 67, 99),
                 green: c(152, 208, 166),
                 amber: c(233, 189, 139),
                 purple: c(203, 173, 248),
@@ -40,13 +40,13 @@ impl Theme {
             },
             Self::Light => Palette {
                 canvas: c(255, 255, 255),
-                surface: c(245, 247, 250),
-                raised: c(230, 236, 244),
+                surface: c(247, 248, 250),
+                raised: c(235, 237, 240),
                 border: c(214, 221, 230),
                 text: c(37, 47, 63),
                 muted: c(93, 108, 126),
                 accent: c(26, 99, 184),
-                accent_soft: c(222, 237, 255),
+                accent_soft: c(220, 232, 252),
                 green: c(31, 112, 63),
                 amber: c(146, 79, 9),
                 purple: c(121, 60, 174),
@@ -68,7 +68,7 @@ pub fn apply_theme(ctx: &Context, theme: Theme) {
     v.faint_bg_color = p.raised;
     v.override_text_color = Some(p.text);
     v.window_stroke = Stroke::new(1.0_f32, p.border);
-    v.window_corner_radius = 12.into();
+    v.window_corner_radius = 6.into();
     v.selection.bg_fill = p.accent_soft;
     v.selection.stroke = Stroke::new(1.0_f32, p.accent);
     v.widgets.noninteractive.bg_fill = p.surface;
@@ -90,7 +90,7 @@ pub fn apply_theme(ctx: &Context, theme: Theme) {
         &mut v.widgets.hovered,
         &mut v.widgets.active,
     ] {
-        w.corner_radius = 4.into();
+        w.corner_radius = 3.into();
     }
     let mut style = (*ctx.style()).clone();
     style.visuals = v;

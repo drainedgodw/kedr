@@ -341,10 +341,12 @@ mod tests {
         let q = DefinitionQuery::capture(&w).unwrap();
         let encoded = file_uri(&q.root.join("a #🌲.rs")).unwrap();
         assert!(encoded.contains("%23"));
-        assert_eq!(
-            Url::parse(&encoded).unwrap().to_file_path().unwrap(),
-            q.root.join("a #🌲.rs")
-        );
+        let decoded = Url::parse(&encoded).unwrap().to_file_path().unwrap();
+        // Windows file URLs omit the verbatim \? prefix returned by canonicalize.
+        // Compare the existing parent canonically, without creating a fixture file.
+        assert_eq!(decoded.parent().unwrap().canonicalize().unwrap(), q.root);
+        assert_eq!(decoded.file_name().unwrap(), "a #🌲.rs");
+        assert_eq!(file_uri(&decoded).unwrap(), encoded);
         for uri in [
             "https://example.org/x.rs".to_string(),
             "file://remote/x.rs".into(),

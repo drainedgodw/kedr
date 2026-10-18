@@ -337,3 +337,10 @@ absolute checkout path, so `/tmp/kedr-package/src/kedr` introduced false fuzzy
 matches. Matching now uses workspace-relative paths, consistent with quick-open;
 the existing MRU test also rejects absolute-root queries. This is a correctness
 fix, not evidence that the new hosted Arch package job has passed.
+
+The first language CI run also found a Windows-only assertion mismatch between
+a verbatim canonical path and its normal file-URI decoding. The URI round-trip
+test now checks the canonical existing parent, the exact escaped filename and
+the re-encoded URI; it does not require verbatim-prefix preservation. Runtime
+target validation still canonicalizes the target before membership checks.
+Windows execution of this correction awaits the subsequent hosted run.

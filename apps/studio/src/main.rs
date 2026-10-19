@@ -2,6 +2,7 @@ mod icon;
 mod jobs;
 mod picker;
 mod preferences;
+mod recovery;
 use eframe::egui::{self, ViewportCommand};
 use jobs::{Jobs, Request, Response};
 use kedr_ui::{Effect, Shell, Theme, apply_theme};
@@ -14,6 +15,7 @@ struct Options {
     capture: Option<PathBuf>,
     state: String,
     light: bool,
+    no_recovery: bool,
     size: Option<[f32; 2]>,
 }
 impl Options {
@@ -24,6 +26,7 @@ impl Options {
             match arg.as_str() {
                 "--capture" => v.capture = Some(args.next().ok_or("Missing capture path")?.into()),
                 "--state" => v.state = args.next().ok_or("Missing state")?,
+                "--no-recovery" => v.no_recovery = true,
                 "--light" => v.light = true,
                 "--size" => {
                     let size = args.next().ok_or("Missing size")?;
@@ -43,7 +46,7 @@ impl Options {
                 }
                 "--help" => {
                     println!(
-                        "CodeCedar — Kedr [workspace]\n--capture FILE --state editor|welcome|palette|commands|settings|search|unsaved|trust|error\n--light --size WIDTHxHEIGHT\nCapture mode never saves preferences or runs tasks."
+                        "CodeCedar — Kedr [workspace]\n--capture FILE --state editor|welcome|palette|commands|settings|search|unsaved|trust|error\n--light --no-recovery --size WIDTHxHEIGHT\nCapture mode never saves preferences or runs tasks."
                     );
                     std::process::exit(0)
                 }
@@ -71,6 +74,12 @@ struct Studio {
     quit_allowed: bool,
     disk_poll_at: std::time::Instant,
     disk_poll_pending: bool,
+    recovery: Option<recovery::Recovery>,
+    recovery_at: std::time::Instant,
+    recovery_checkpoint: Option<kedr_workbench::recovery::Guard>,
+    recovery_restore: Option<kedr_workbench::recovery::Guard>,
+    finishing: bool,
+    finish_sent: bool,
 }
 impl Studio {
     fn new(cc: &eframe::CreationContext<'_>, options: Options) -> Self {
@@ -99,6 +108,17 @@ impl Studio {
             .collect();
         let jobs = Jobs::new(cc.egui_ctx.clone());
         let project = options.project.clone();
+        let recovery = if options.capture.is_none() && !options.no_recovery {
+            match recovery::Recovery::start(cc.egui_ctx.clone()) {
+                Ok(r) => Some(r),
+                Err(e) => {
+                    shell.error(e);
+                    None
+                }
+            }
+        } else {
+            None
+        };
         let mut app = Self {
             shell,
             jobs,
@@ -111,6 +131,12 @@ impl Studio {
             quit_allowed: false,
             disk_poll_at: std::time::Instant::now(),
             disk_poll_pending: false,
+            recovery,
+            recovery_at: std::time::Instant::now(),
+            recovery_checkpoint: None,
+            recovery_restore: None,
+            finishing: false,
+            finish_sent: false,
         };
         if let Some(path) = project {
             app.open_project(path);
@@ -120,6 +146,7 @@ impl Studio {
     fn open_project(&mut self, path: PathBuf) {
         self.shell.cancel_file_reload();
         self.shell.cancel_definition();
+        self.recovery_restore = None;
         self.disk_poll_pending = false;
         self.disk_poll_at = std::time::Instant::now();
         let id = self.jobs.generation.fetch_add(1, Ordering::Relaxed) + 1;
@@ -137,6 +164,56 @@ impl Studio {
         }
     }
     fn poll(&mut self, ctx: &egui::Context) {
+        while let Some(r) = self
+            .recovery
+            .as_ref()
+            .and_then(|r| r.receive.try_recv().ok())
+        {
+            match r {
+                recovery::Response::Offers(offers) => self.shell.recovery_offers = offers,
+                recovery::Response::Error(e) => {
+                    self.recovery_checkpoint = None;
+                    self.shell.error(e)
+                }
+                recovery::Response::Restored(result) => {
+                    self.shell.recovery_busy = false;
+                    if self.finishing {
+                        self.recovery_restore = None;
+                        continue;
+                    }
+                    let guard = self.recovery_restore.take();
+                    let result = result.and_then(|tabs| {
+                        guard
+                            .as_ref()
+                            .ok_or_else(|| "Recovery request expired".into())
+                            .and_then(|g| self.shell.accept_recovery(g, tabs))
+                    });
+                    if let Err(e) = result {
+                        self.shell.error(e)
+                    }
+                }
+                recovery::Response::Forgotten(id, result) => {
+                    self.shell.recovery_busy = false;
+                    match result {
+                        Ok(()) => self.shell.recovery_offers.retain(|o| o.id != id),
+                        Err(e) => self.shell.error(e),
+                    }
+                }
+                recovery::Response::Finished(result) => match result {
+                    Ok(()) => {
+                        self.quit_allowed = true;
+                        ctx.send_viewport_cmd(ViewportCommand::Close);
+                    }
+                    Err(e) => {
+                        self.finishing = false;
+                        self.finish_sent = false;
+                        self.shell
+                            .error(format!("Recovery shutdown failed; window kept open: {e}"));
+                    }
+                },
+            }
+        }
+
         if let Some(result) = self.picker.poll() {
             match result {
                 Ok((generation, Some(path)))
@@ -324,14 +401,55 @@ impl Studio {
                         }
                     }
                 }
+                Effect::RestoreDrafts(id) => {
+                    let result = self
+                        .shell
+                        .workspace
+                        .as_ref()
+                        .ok_or_else(|| "Open the original workspace first".to_string())
+                        .and_then(|w| {
+                            self.recovery_restore =
+                                Some(kedr_workbench::recovery::Guard::capture(w));
+                            self.recovery
+                                .as_ref()
+                                .ok_or_else(|| "Recovery is unavailable in this mode".to_string())?
+                                .send
+                                .try_send(recovery::Request::Restore(id, w.project.root.clone()))
+                                .map_err(|e| e.to_string())
+                        });
+                    if let Err(e) = result {
+                        self.recovery_restore = None;
+                        self.shell.recovery_busy = false;
+                        self.shell.error(e);
+                    }
+                }
+                Effect::ForgetDrafts(id) => {
+                    let result = self
+                        .recovery
+                        .as_ref()
+                        .ok_or_else(|| "Recovery is unavailable in this mode".to_string())
+                        .and_then(|r| {
+                            r.send
+                                .try_send(recovery::Request::Forget(id))
+                                .map_err(|e| e.to_string())
+                        });
+                    if let Err(e) = result {
+                        self.shell.recovery_busy = false;
+                        self.shell.error(e);
+                    }
+                }
                 Effect::Quit => {
-                    self.quit_allowed = true;
+                    self.recovery_restore = None;
+                    self.finishing = self.recovery.is_some();
+                    self.quit_allowed = self.recovery.is_none();
                     if self.options.capture.is_none()
                         && let Err(e) = self.preferences().write()
                     {
                         self.shell.error(format!("Preferences were not saved: {e}"));
                     }
-                    ctx.send_viewport_cmd(ViewportCommand::Close);
+                    if self.quit_allowed {
+                        ctx.send_viewport_cmd(ViewportCommand::Close);
+                    }
                 }
                 Effect::PreferencesChanged => {
                     if self.options.capture.is_none()
@@ -348,6 +466,23 @@ impl eframe::App for Studio {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         self.frames += 1;
         self.poll(ctx);
+        if self.finishing && !self.quit_allowed {
+            ctx.send_viewport_cmd(ViewportCommand::CancelClose);
+            if !self.finish_sent {
+                self.finish_sent = self
+                    .recovery
+                    .as_ref()
+                    .is_some_and(|r| r.send.try_send(recovery::Request::Finish).is_ok());
+            }
+            egui::CentralPanel::default().show(ctx, |ui| {
+                ui.heading("Finishing local recovery journal…");
+                ui.label("Waiting for the recovery worker. No project file is being written.");
+                ui.spinner();
+            });
+            ctx.request_repaint_after(std::time::Duration::from_millis(100));
+            return;
+        }
+
         // At most one active-file content probe queued; never read files on the UI thread.
         if self.options.capture.is_none() {
             ctx.request_repaint_after(std::time::Duration::from_secs(2));
@@ -386,6 +521,33 @@ impl eframe::App for Studio {
         }
         let effects = self.shell.show(ctx);
         self.effects(effects, ctx);
+        if !self.finishing
+            && let Some(recovery) = self.recovery.as_ref()
+            && self.recovery_at.elapsed() >= std::time::Duration::from_secs(2)
+        {
+            self.recovery_at = std::time::Instant::now();
+            if let Some(w) = self.shell.workspace.as_ref()
+                && self
+                    .recovery_checkpoint
+                    .as_ref()
+                    .is_none_or(|g| !g.matches(w))
+            {
+                match kedr_workbench::recovery::Snapshot::capture(w) {
+                    Ok(snapshot) => {
+                        if recovery
+                            .send
+                            .try_send(recovery::Request::Checkpoint(snapshot))
+                            .is_ok()
+                        {
+                            self.recovery_checkpoint =
+                                Some(kedr_workbench::recovery::Guard::capture(w));
+                        }
+                    }
+                    Err(e) => self.shell.error(e.to_string()),
+                }
+            }
+        }
+
         if let Some(path) = &self.options.capture {
             if ready
                 && self.state_applied

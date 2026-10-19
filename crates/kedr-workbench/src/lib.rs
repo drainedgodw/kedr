@@ -4,6 +4,7 @@ mod disk;
 mod editor;
 pub mod lsp;
 mod navigation;
+pub mod recovery;
 mod search;
 mod tasks;
 mod workspace;

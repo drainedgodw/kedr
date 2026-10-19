@@ -4,6 +4,7 @@ mod language;
 mod navigation;
 mod overlays;
 mod panels;
+mod recovery;
 use crate::{
     EditorCache, Icon, ListRow, Palette, Theme, apply_theme, editor, icon_button, list_row,
     singleline, wordmark,
@@ -193,6 +194,8 @@ pub enum Effect {
     References,
     Quit,
     PreferencesChanged,
+    RestoreDrafts(usize),
+    ForgetDrafts(usize),
 }
 #[derive(Clone)]
 pub struct Settings {
@@ -232,6 +235,8 @@ struct NavEntry {
 #[derive(Clone)]
 enum Dialog {
     Settings,
+    Recovery,
+    ForgetRecovery(usize),
     Keymap,
     EditShortcut(Action),
     GoToLine,
@@ -265,6 +270,8 @@ pub struct Shell {
     language_action: Action,
     disk_notice: Option<(PathBuf, kedr_workbench::DiskState)>,
     reload_pending: Option<kedr_workbench::FileQuery>,
+    pub recovery_offers: Vec<kedr_workbench::recovery::Offer>,
+    pub recovery_busy: bool,
     pub editor_cache: EditorCache,
     effects: Vec<Effect>,
     resolved_profile: crate::Keymap,
@@ -329,6 +336,8 @@ impl Shell {
             language_action: Action::Definition,
             disk_notice: None,
             reload_pending: None,
+            recovery_offers: Vec::new(),
+            recovery_busy: false,
             editor_cache: EditorCache::default(),
             effects: Vec::new(),
             resolved_profile,
@@ -805,6 +814,7 @@ impl Shell {
         self.shortcuts(ctx);
         let p = self.settings.theme.palette();
         self.header(ctx, p);
+        self.recovery_notice(ctx, p);
         self.status_bar(ctx, p);
         self.activity(ctx, p);
         if self.settings.show_sidebar && self.workspace.is_some() {

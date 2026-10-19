@@ -28,6 +28,20 @@ impl Document {
             saved: text.into(),
         })
     }
+    /// Construct an unsaved recovered buffer without reading or writing its target.
+    pub fn from_recovery(path: PathBuf, baseline: String, text: String) -> io::Result<Self> {
+        if !path.is_absolute()
+            || baseline.len() > MAX_DOCUMENT_BYTES
+            || text.len() > MAX_DOCUMENT_BYTES
+        {
+            return Err(io::Error::other("Invalid recovered document"));
+        }
+        Ok(Self {
+            path,
+            buffer: TextBuffer::new(text),
+            saved: baseline.into(),
+        })
+    }
     /// Cheap immutable saved baseline for off-thread disk checks. Never includes unsaved edits.
     pub fn saved_snapshot(&self) -> Arc<str> {
         Arc::clone(&self.saved)

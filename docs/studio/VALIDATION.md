@@ -426,3 +426,50 @@ resets undo. See FILES.md for guards and AUDIT.md for prioritized unfinished wor
 Persistent LSP, completion/hover/live diagnostics, safe semantic rename, Git, PTY,
 DAP, crash recovery and physical target-platform acceptance remain open. Only
 CodeCedar is runnable; full JetBrains parity is not claimed.
+
+## Bounded local draft recovery
+
+Previous hosted workflow 39282097026 was **not fully successful**: Linux, macOS
+and Arch passed; Windows model/live LSP/Clippy/release build passed but NSIS
+installation failed because the Chocolatey feed returned an error. This revision
+adds existing-installation detection, three bounded install attempts and explicit
+NSIS/payload failure checks. PowerShell/installer execution is not validated by
+the Linux checks below; new hosted CI must be observed separately.
+
+Final local acceptance: 182 default Rust workspace tests on Linux, two separately
+invoked real rust-analyzer tests, 18 Python installer tests, fmt, warnings-denied
+workspace/all-target Clippy, catalog/keymap validation and native debug build all
+passed. No new dependency or lockfile change was required. The default count
+includes the crash-child test helper, which returns without work unless launched
+by its parent integration test. The parent actually starts that child, waits for
+a committed journal revision, kills it, reads/restores the draft and verifies the
+project file remained unchanged. This is process-termination evidence, not a
+physical GUI crash or power-loss test.
+
+Other new coverage checks Unicode/CRLF/baseline round trips, external Save refusal,
+missing-file non-recreation, staging collision preserving the last good revision,
+clean tombstones, malformed/version/path/duplicate/quota rejection, stale
+edit/undo/save/reopen/workspace guards, Unix private permissions and escaped
+symlink rejection. Actual recovery-worker lifecycle tests exercise startup offers,
+restore, deletion and ordered clean shutdown. UI tests verify unrelated dirty
+buffers remain, one dirty collision rejects the whole batch, opening a workspace
+rejects restore and incidental Enter/Escape cannot restore/delete at 760x520.
+
+Forty-nine native captures were generated; all image hashes and the accepted
+binary hash were checked. Eight were individually reviewed: recovery,
+compact-recovery, light-recovery, recovery-delete, settings, minimum-editor,
+commands and editor-light. The other 41 were generated, not all visually reviewed.
+The recovery notice sits below the main header; explanatory text, restore/delete
+and Later/Cancel controls fit the inspected minimum viewport. Capture scenes are
+visibly labelled fixtures and do not start the recovery worker or mutate journals.
+Many-offer lists, nonmatching-workspace opening and physical target-platform
+interaction were not visually accepted this iteration.
+
+See RECOVERY.md for plaintext privacy, --no-recovery, local-state paths, quotas,
+checkpoint gaps, corruption retention and shutdown behavior. Large snapshot
+comparison/materialization still uses the UI thread. I/O has no hard OS timeout;
+a blocked journal can delay approved quit. Full-disk/permissions/power-loss fault
+injection, retention/privacy settings, full-session restore, encrypted storage and
+physical Windows/macOS acceptance remain open. Project saves remain synchronous;
+Save all is not a cross-file transaction. Only CodeCedar is runnable, not the full
+planned suite or a complete JetBrains equivalent.

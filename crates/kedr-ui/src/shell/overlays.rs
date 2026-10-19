@@ -225,6 +225,21 @@ impl Shell {
             .show(ctx, |ui| {
             ui.set_width((if matches!(dialog, Dialog::Usages) { 640.0_f32 } else { 520.0_f32 }).min(ctx.content_rect().width() - 80.));
             match &dialog {
+                Dialog::Recovery => {
+                    self.recovery_ui(ui, p);
+                    if ui.button("Later").clicked() {close=true;}
+                }
+                Dialog::ForgetRecovery(id) => {
+                    ui.heading("Delete this recovery snapshot?");
+                    ui.label(RichText::new("This removes the selected local backup, not any project file.").color(p.amber));
+                    ui.label("Another session may still be running. Restored or current editor buffers are unchanged.");
+                    ui.horizontal_wrapped(|ui| {
+                        if ui.add_enabled(!self.recovery_busy, egui::Button::new("Delete snapshot")).clicked() {
+                            self.recovery_busy=true;self.effects.push(Effect::ForgetDrafts(*id));next_dialog=Some(Dialog::Recovery);close=true;
+                        }
+                        if ui.button("Cancel").clicked() {next_dialog=Some(Dialog::Recovery);close=true;}
+                    });
+                }
                 Dialog::Reload(query) => {
                     ui.heading("Reload file from disk?");
                     let name = query.path.file_name().unwrap_or_default().to_string_lossy();
@@ -342,6 +357,7 @@ impl Shell {
                 }
                 Dialog::Settings => {
                     ui.heading("Settings");
+                    ui.label(RichText::new("Desktop draft recovery uses local plaintext snapshots (unless --no-recovery). Capture mode is excluded.").small().color(p.muted));
                     ui.label(RichText::new("Editor appearance and keyboard").color(p.muted));
                     ui.add_space(16.);
                     ui.label("Appearance");
@@ -501,6 +517,24 @@ impl Shell {
     /// Deterministic capture states; no commands or project files are modified on disk.
     pub fn capture_state(&mut self, state: &str) {
         match state {
+            "recovery" | "recovery-delete" => {
+                let root = self
+                    .workspace
+                    .as_ref()
+                    .map(|w| w.project.root.clone())
+                    .unwrap_or_else(|| PathBuf::from("/example/workspace"));
+                self.recovery_offers = vec![kedr_workbench::recovery::Offer {
+                    id: 0,
+                    root,
+                    count: 2,
+                }];
+                self.dialog = Some(if state == "recovery-delete" {
+                    Dialog::ForgetRecovery(0)
+                } else {
+                    Dialog::Recovery
+                });
+                self.status = "Capture fixture: recovery layout only".into();
+            }
             "palette" => self.action(Action::QuickOpen),
             "commands" => self.action(Action::Commands),
             "recent" => {

@@ -8,7 +8,7 @@ reference observations, shipped subsets and next implementation gates.
 
 | Capability family | Current evidence | Required next gate |
 | --- | --- | --- |
-| Editing / local workspace | Early editor, guarded saves, bounded search, active-file disk notices and confirmed background reload | Recovery, async saves, recursive watching/rescan, conflict merge and fault injection |
+| Editing / local workspace | Early editor, guarded saves, bounded search, active-file disk notices, confirmed background reload and bounded local draft recovery | Durable recovery/fault-injection expansion, async saves, recursive watching/rescan, conflict merge and fault injection |
 | UX / keyboard | Shared desktop shell, bounded back/forward, recent files and conflict-safe single-stroke remapping | Multi-stroke/modifier gestures, broader context dispatch, target-machine QA |
 | Language intelligence | Basic line colors, saved-source Cargo diagnostics, and [on-demand Rust LSP definition/usages navigation](../studio/LANGUAGE.md) | Persistent versioned LSP, completion, diagnostics, rename and parser tests |
 | Refactoring / intentions | Not implemented | Semantic correctness, previews, cross-file transactions, rollback |

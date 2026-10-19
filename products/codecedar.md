@@ -13,6 +13,8 @@ A native, local-first development workspace built on the Kedr Rust text core.
   autoindent, transactional multiline indentation and literal find/replace.
 - Bounded saved-project-file search in the background.
 - Explicit save, external-change refusal, unsaved-change guards for close/switch/quit.
+- [Bounded local draft recovery](../docs/studio/RECOVERY.md): plaintext checkpoints,
+  explicit buffer-only restore and snapshot deletion. Use `--no-recovery` to disable.
 - Real Cargo check/test output, only after explicit project trust/confirmation.
 - Native folder picker, recent workspaces and appearance preferences.
 - Dense desktop shell with File / Edit / Navigate / Search / View / Run menus.

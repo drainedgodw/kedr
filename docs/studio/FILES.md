@@ -56,7 +56,7 @@ the underlying blocking OS read.
   and before display. Later polling/save guards detect further observed changes;
   no cross-process synchronization guarantee is made. Polling is not a semantic
   LSP workspace snapshot guard.
-- Saves are still synchronous and Save all can partially succeed. Crash recovery,
+- Saves are still synchronous and Save all can partially succeed. Full durable crash recovery (beyond the [bounded draft journal](RECOVERY.md)),
   conflict comparison/merge, Save As, locking and cross-file transactional rollback
   remain future correctness gates.
 - Capture mode does not poll/reload or change project files. Disk-change and

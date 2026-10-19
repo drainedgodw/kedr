@@ -94,3 +94,13 @@ text visible and offer a single explicit Reload from disk action. The shared
 confirmation names the file, warns about dirty edits and undo reset, wraps buttons
 at minimum size and does not default incidental Enter to discarding text.
 Escape/Cancel returns to editing. See [file contract](FILES.md) for actual limits.
+
+## Recovery decisions
+
+A compact notice below the main header offers review of previous local draft
+snapshots without opening a destructive startup modal. Review explains plaintext
+storage, matching workspace, current-buffer collisions and source retention.
+Restore changes editor buffers only. Snapshot deletion is a separate confirmation;
+incidental Enter does not choose it. Escape/Later retains source data. Lists are
+bounded/scrollable, long workspace paths truncate with a full-path hover label.
+Capture fixtures must be visibly identified; they do not prove crash recovery.

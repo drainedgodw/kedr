@@ -77,6 +77,19 @@ now has 37 implemented actions, including confirmed Reload file from disk.
 The native host queues bounded active-file content checks off the UI thread and
 shows changed/missing/unreadable notices without replacing edits. Confirmed reload
 checks document identity/revision/saved baseline before accepting its background
-result; other dirty tabs remain intact. Crash recovery, merge/diff, async saves and
+result; other dirty tabs remain intact. A bounded local draft journal and explicit buffer-only restore/delete workflow now
+cover a first recovery subset; full durable recovery, merge/diff, async saves and
 recursive watching remain open. See [current audit](AUDIT.md) and
 [file contract](../studio/FILES.md), not historical test totals, for remaining work.
+
+## Local draft recovery subset
+
+The desktop host now checkpoints dirty buffers in independent private local
+plaintext session directories, without saving project files. Explicit restoration
+is all-or-nothing against the current tab/workspace guard and refuses dirty target
+collisions. A separate confirmation deletes a selected source snapshot. Approved
+quit retires only the current process journal after an empty revision commits.
+See [recovery limits](../studio/RECOVERY.md): checkpoint gaps, bounded quotas,
+UI snapshot materialization, unencrypted retention and blocking OS I/O remain.
+The preceding Windows installer failure was an NSIS feed failure, not a green
+packaging result; new retries still require hosted acceptance.

@@ -1,5 +1,32 @@
 use super::*;
 impl Shell {
+    pub(super) fn recovery_notice(&mut self, ctx: &Context, p: Palette) {
+        if !self.recovery_offers.is_empty() {
+            egui::TopBottomPanel::top("recovery-notice")
+                .frame(egui::Frame::new().fill(p.surface).inner_margin(6))
+                .show(ctx, |ui| {
+                    ui.horizontal_wrapped(|ui| {
+                        ui.label(format!(
+                            "{} local draft snapshot(s) available",
+                            self.recovery_offers.len()
+                        ));
+                        if ui
+                            .add_enabled(
+                                !self.recovery_busy && !self.loading,
+                                egui::Button::new("Review recovery…"),
+                            )
+                            .clicked()
+                        {
+                            self.palette = None;
+                            self.dialog = Some(Dialog::Recovery);
+                        }
+                        if self.recovery_busy {
+                            ui.spinner();
+                        }
+                    });
+                });
+        }
+    }
     pub(super) fn header(&mut self, ctx: &Context, p: Palette) {
         egui::TopBottomPanel::top("kedr-header")
             .exact_height(44.)

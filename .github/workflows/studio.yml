@@ -60,11 +60,14 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          choco install nsis -y --no-progress
+          $ErrorActionPreference = 'Stop'
+          $nsis = ./scripts/ensure_nsis.ps1
+          if (-not $nsis) { throw 'NSIS executable was not resolved' }
           python scripts/build_windows_payload.py --binary target/release/kedr-studio.exe --out windows-payload
+          if ($LASTEXITCODE -ne 0) { throw 'Windows payload preparation failed' }
           $payload = (Resolve-Path windows-payload).Path
           $out = Join-Path $PWD 'CodeCedar-Setup.exe'
-          & 'C:\Program Files (x86)\NSIS\makensis.exe' "/DPAYLOAD=$payload" "/DOUTFILE=$out" packaging/windows/codecedar.nsi
+          & $nsis "/DPAYLOAD=$payload" "/DOUTFILE=$out" packaging/windows/codecedar.nsi
           if ($LASTEXITCODE -ne 0) { throw 'NSIS compilation failed' }
           ./scripts/test_windows_install.ps1 -Setup $out
       - uses: actions/upload-artifact@v4

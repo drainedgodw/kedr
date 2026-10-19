@@ -31,6 +31,7 @@ The default profile is a **JetBrains-compatible subset**, not full keymap or fea
 | Go to file / `navigation.file` | Ctrl Shift N | Cmd Shift O | Ctrl P | Cmd P |
 | Save file / `file.save` | — | — | Ctrl S | Cmd S |
 | Save all files / `file.save_all` | Ctrl S | Cmd S | Ctrl Shift S | Cmd Shift S |
+| Reload file from disk / `file.reload` | — | — | — | — |
 | Undo / `edit.undo` | Ctrl Z | Cmd Z | Ctrl Z | Cmd Z |
 | Redo / `edit.redo` | Ctrl Shift Z | Cmd Shift Z | Ctrl Shift Z | Cmd Shift Z |
 | Find in file / `search.find` | Ctrl F | Cmd F | Ctrl F | Cmd F |

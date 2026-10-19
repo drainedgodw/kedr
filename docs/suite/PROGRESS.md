@@ -10,15 +10,15 @@
   rendering. Native host uses open-source egui/eframe/rfd, not a custom OS stack.
 - Original Studio release: 47 core + 14 workbench + 8 UI tests, 69 total; eleven
   native UI states were locally inspected. Additional changes need new evidence. The preceding keyboard revision passed 93
-  local tests. The current desktop revision passes 105 Rust tests plus 18 Python
-  installer tests; the acceptance log records the scope and platform runs.
+  local tests. That earlier desktop revision passed 105 Rust tests plus 18 Python
+  installer tests; subsequent acceptance entries record later counts and platform runs.
 - Windows/macOS tests and release artifacts succeeded in first Studio CI run.
   Linux compiled/tested successfully but capture lacked libxkbcommon-x11; the
   dependency correction was published separately. See validation for actual runs.
 
 ## This catalog revision
 
-Two persisted platform-aware keyboard profiles, 26 stable implemented action IDs,
+Two persisted platform-aware keyboard profiles (originally 26 stable implemented action IDs),
 searchable keyboard settings, correct focus dispatch and real line/navigation
 commands were added. Unsupported modified edit keys no longer silently edit text.
 Single-stroke custom bindings now support recording, atomic conflict checks,
@@ -66,3 +66,17 @@ The viewport layout cache now prunes distant rows while retaining nearby galleys
 instead of clearing everything after crossing 256 cached rows. A 100,000-line test
 exercises distant jumps and asserts limited painted/cached rows. No unmeasured
 percentage speedup or optimization of nonexistent product backends is claimed.
+
+## Current navigation and file-reconciliation subset
+
+On-demand Rust definition and usages navigation now use an explicitly authorized
+rust-analyzer, open unsaved overlays and version guards, with real integration
+tests. They are not persistent LSP or completion/refactoring. The shared registry
+now has 37 implemented actions, including confirmed Reload file from disk.
+
+The native host queues bounded active-file content checks off the UI thread and
+shows changed/missing/unreadable notices without replacing edits. Confirmed reload
+checks document identity/revision/saved baseline before accepting its background
+result; other dirty tabs remain intact. Crash recovery, merge/diff, async saves and
+recursive watching remain open. See [current audit](AUDIT.md) and
+[file contract](../studio/FILES.md), not historical test totals, for remaining work.

@@ -102,6 +102,15 @@ impl Shell {
                             t.document.path.extension().and_then(|s| s.to_str()) == Some("rs")
                         })
             }
+            Action::Reload => {
+                !self.loading
+                    && self.reload_pending.is_none()
+                    && self
+                        .workspace
+                        .as_ref()
+                        .and_then(Workspace::active)
+                        .is_some()
+            }
             Action::CancelLanguage => self.definition.is_some() || self.references.is_some(),
             Action::Back => self.history.can_back() && self.restoring.is_none(),
             Action::Forward => self.history.can_forward() && self.restoring.is_none(),

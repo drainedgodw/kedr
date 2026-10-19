@@ -130,3 +130,20 @@ fn scanning_never_follows_symlink_cycles() {
     assert_eq!(p.files.len(), 1);
     assert!(!p.truncated);
 }
+
+#[test]
+fn saved_snapshot_is_immutable_and_never_exposes_unsaved_edits() {
+    let dir = TempDir::new();
+    let p = dir.0.join("a");
+    fs::write(&p, "original").unwrap();
+    let mut d = Document::open(&p).unwrap();
+    let saved = d.saved_snapshot();
+    assert!(std::sync::Arc::ptr_eq(&saved, &d.saved_snapshot()));
+    d.buffer.replace(0..8, "ours").unwrap();
+    assert_eq!(saved.as_ref(), "original");
+    assert_eq!(d.saved_snapshot().as_ref(), "original");
+    d.save().unwrap();
+    assert_eq!(saved.as_ref(), "original");
+    assert_eq!(d.saved_snapshot().as_ref(), "ours");
+    assert!(!std::sync::Arc::ptr_eq(&saved, &d.saved_snapshot()));
+}

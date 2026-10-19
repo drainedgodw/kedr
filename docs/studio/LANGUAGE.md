@@ -76,7 +76,7 @@ multi-project results. Modal snapshots are not a persistent usages tool window.
   Remote URIs, out-of-workspace paths and escaping symlinks are rejected. Standard
   library/dependency navigation outside that scan is not implemented.
 - Existing dirty targets are never replaced by disk contents. Unopened targets
-  are read off the UI thread. There is no file watcher: external changes on disk
+  are read off the UI thread. The active-file disk notice is polling, not a file watcher or semantic workspace guard: external changes on disk
   during analysis can still make locations stale. Retry after reconciling files.
 - Full overlays are limited to 1 MiB per Rust file, 4 MiB total and 32 files.
   Framed JSON messages have a 4 MiB bound, headers 8 KiB, incoming/outgoing queues 8/64 messages and

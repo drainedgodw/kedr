@@ -3,7 +3,10 @@ use std::{
     fs::{self, File, OpenOptions},
     io::{self, Read, Write},
     path::{Path, PathBuf},
-    sync::atomic::{AtomicU64, Ordering},
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 
 pub const MAX_DOCUMENT_BYTES: usize = 16 * 1024 * 1024;
@@ -13,7 +16,7 @@ static NEXT: AtomicU64 = AtomicU64::new(0);
 pub struct Document {
     pub path: PathBuf,
     pub buffer: TextBuffer,
-    saved: String,
+    saved: Arc<str>,
 }
 impl Document {
     pub fn open(path: impl AsRef<Path>) -> io::Result<Self> {
@@ -22,8 +25,12 @@ impl Document {
         Ok(Self {
             path,
             buffer: TextBuffer::new(text.clone()),
-            saved: text,
+            saved: text.into(),
         })
+    }
+    /// Cheap immutable saved baseline for off-thread disk checks. Never includes unsaved edits.
+    pub fn saved_snapshot(&self) -> Arc<str> {
+        Arc::clone(&self.saved)
     }
     pub fn is_dirty(&self) -> bool {
         !self.buffer.equals(&self.saved)
@@ -32,7 +39,7 @@ impl Document {
     /// The external-content check is not a lock against concurrent writers.
     pub fn save(&mut self) -> io::Result<()> {
         let disk = read_text(&self.path)?;
-        if disk != self.saved {
+        if disk.as_str() != self.saved.as_ref() {
             return Err(io::Error::other(
                 "File changed externally; refusing overwrite",
             ));
@@ -50,7 +57,7 @@ impl Document {
             file.sync_all()?;
             drop(file);
             // Recheck immediately before committing the staged file.
-            if read_text(&self.path)? != self.saved {
+            if read_text(&self.path)?.as_str() != self.saved.as_ref() {
                 return Err(io::Error::other("File changed during save"));
             }
             fs::rename(&temp, &self.path)?;
@@ -60,7 +67,7 @@ impl Document {
             let _ = fs::remove_file(&temp);
         }
         result?;
-        self.saved = self.buffer.to_text();
+        self.saved = self.buffer.to_text().into();
         Ok(())
     }
 }

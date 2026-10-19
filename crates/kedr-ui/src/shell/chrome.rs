@@ -20,6 +20,7 @@ impl Shell {
                                             Action::OpenProject,
                                             Action::Save,
                                             Action::SaveAll,
+                                            Action::Reload,
                                             Action::CloseTab,
                                         ][..],
                                     ),
@@ -82,6 +83,7 @@ impl Shell {
                                             let needs_editor = matches!(
                                                 action,
                                                 Action::Save
+                                                    | Action::Reload
                                                     | Action::CloseTab
                                                     | Action::Undo
                                                     | Action::Redo

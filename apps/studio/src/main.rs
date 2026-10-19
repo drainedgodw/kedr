@@ -69,6 +69,8 @@ struct Studio {
     capture_requested: bool,
     capture_started: Option<std::time::Instant>,
     quit_allowed: bool,
+    disk_poll_at: std::time::Instant,
+    disk_poll_pending: bool,
 }
 impl Studio {
     fn new(cc: &eframe::CreationContext<'_>, options: Options) -> Self {
@@ -107,6 +109,8 @@ impl Studio {
             capture_requested: false,
             capture_started: None,
             quit_allowed: false,
+            disk_poll_at: std::time::Instant::now(),
+            disk_poll_pending: false,
         };
         if let Some(path) = project {
             app.open_project(path);
@@ -114,7 +118,10 @@ impl Studio {
         app
     }
     fn open_project(&mut self, path: PathBuf) {
+        self.shell.cancel_file_reload();
         self.shell.cancel_definition();
+        self.disk_poll_pending = false;
+        self.disk_poll_at = std::time::Instant::now();
         let id = self.jobs.generation.fetch_add(1, Ordering::Relaxed) + 1;
         self.jobs.search_generation.fetch_add(1, Ordering::Relaxed);
         self.shell.loading = true;
@@ -176,6 +183,13 @@ impl Studio {
                     Ok(doc) => self.shell.accept_document(doc),
                     Err(e) => self.shell.error(e),
                 },
+                Response::Probed(id, query, state) if id == current => {
+                    self.disk_poll_pending = false;
+                    self.shell.apply_disk_probe(&query, state);
+                }
+                Response::Reloaded(id, query, result) if id == current => {
+                    self.shell.complete_reload(&query, result);
+                }
                 Response::Searched(id, search_id, r)
                     if id == current
                         && search_id == self.jobs.search_generation.load(Ordering::Relaxed) =>
@@ -215,6 +229,25 @@ impl Studio {
                     }
                 }
                 Effect::OpenProject(path) => self.open_project(path),
+                Effect::ReloadFile(query) => {
+                    if self.options.capture.is_some() {
+                        self.shell.complete_reload(
+                            &query,
+                            Err("Disk reload is disabled in capture mode".into()),
+                        );
+                        continue;
+                    }
+                    let retry = query.clone();
+                    if let Err(error) = self.jobs.send.try_send(Request::Reload(
+                        query,
+                        self.jobs.generation.load(Ordering::Relaxed),
+                    )) {
+                        self.shell.complete_reload(
+                            &retry,
+                            Err(format!("Reload queue unavailable: {error}")),
+                        );
+                    }
+                }
                 Effect::OpenFile(path) => {
                     if !self.shell.activate_path(&path) {
                         self.send(Request::Open(
@@ -315,6 +348,27 @@ impl eframe::App for Studio {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         self.frames += 1;
         self.poll(ctx);
+        // At most one active-file content probe queued; never read files on the UI thread.
+        if self.options.capture.is_none() {
+            ctx.request_repaint_after(std::time::Duration::from_secs(2));
+            if !self.disk_poll_pending
+                && self.disk_poll_at.elapsed() >= std::time::Duration::from_secs(2)
+            {
+                self.disk_poll_at = std::time::Instant::now();
+                if !self.shell.loading
+                    && let Some(query) = self.shell.file_query()
+                {
+                    self.disk_poll_pending = self
+                        .jobs
+                        .send
+                        .try_send(Request::Probe(
+                            query,
+                            self.jobs.generation.load(Ordering::Relaxed),
+                        ))
+                        .is_ok();
+                }
+            }
+        }
         if ctx.input(|i| i.viewport().close_requested()) && !self.quit_allowed {
             ctx.send_viewport_cmd(ViewportCommand::CancelClose);
             self.shell.request_quit();

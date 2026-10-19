@@ -1,4 +1,5 @@
 mod chrome;
+mod disk;
 mod language;
 mod navigation;
 mod overlays;
@@ -45,6 +46,7 @@ pub enum Action {
     Commands,
     Save,
     SaveAll,
+    Reload,
     Undo,
     Redo,
     Find,
@@ -57,7 +59,7 @@ pub enum Action {
     Settings,
 }
 impl Action {
-    pub const ALL: [Self; 36] = [
+    pub const ALL: [Self; 37] = [
         Self::Back,
         Self::Forward,
         Self::RecentFiles,
@@ -83,6 +85,7 @@ impl Action {
         Self::QuickOpen,
         Self::Save,
         Self::SaveAll,
+        Self::Reload,
         Self::Undo,
         Self::Redo,
         Self::Find,
@@ -123,6 +126,7 @@ impl Action {
             Self::Commands => "Command palette",
             Self::Save => "Save file",
             Self::SaveAll => "Save all files",
+            Self::Reload => "Reload file from disk",
             Self::Undo => "Undo",
             Self::Redo => "Redo",
             Self::Find => "Find in file",
@@ -149,6 +153,7 @@ impl Action {
             Self::Commands => "commands.search",
             Self::Save => "file.save",
             Self::SaveAll => "file.save_all",
+            Self::Reload => "file.reload",
             Self::Undo => "edit.undo",
             Self::Redo => "edit.redo",
             Self::Find => "search.find",
@@ -181,6 +186,7 @@ pub enum Effect {
     PickProject,
     OpenProject(PathBuf),
     OpenFile(PathBuf),
+    ReloadFile(kedr_workbench::FileQuery),
     Search(String),
     RunTask(TaskKind),
     Definition,
@@ -235,6 +241,7 @@ enum Dialog {
     Trust(TaskKind),
     LanguageTrust,
     Usages,
+    Reload(kedr_workbench::FileQuery),
 }
 struct PaletteState {
     files: bool,
@@ -256,6 +263,8 @@ pub struct Shell {
     pub references: Option<kedr_workbench::lsp::ReferenceRunner>,
     usages: Option<language::Usages>,
     language_action: Action,
+    disk_notice: Option<(PathBuf, kedr_workbench::DiskState)>,
+    reload_pending: Option<kedr_workbench::FileQuery>,
     pub editor_cache: EditorCache,
     effects: Vec<Effect>,
     resolved_profile: crate::Keymap,
@@ -318,6 +327,8 @@ impl Shell {
             references: None,
             usages: None,
             language_action: Action::Definition,
+            disk_notice: None,
+            reload_pending: None,
             editor_cache: EditorCache::default(),
             effects: Vec::new(),
             resolved_profile,
@@ -360,6 +371,11 @@ impl Shell {
         self.error = Some(message.into());
     }
     pub fn set_workspace(&mut self, w: Workspace) {
+        self.disk_notice = None;
+        self.reload_pending = None;
+        if matches!(self.dialog, Some(Dialog::Reload(_))) {
+            self.dialog = None;
+        }
         self.cancel_definition();
         self.language_trusted = false;
         self.history = Default::default();
@@ -586,6 +602,7 @@ impl Shell {
                     focus: true,
                 })
             }
+            Action::Reload => self.request_reload(),
             Action::Save => {
                 if let Some(t) = self.workspace.as_mut().and_then(Workspace::active_mut) {
                     match t.save() {
@@ -813,6 +830,7 @@ impl Shell {
                     return;
                 }
                 self.tabs(ui, p);
+                self.disk_banner(ui, p);
                 if self.find_open {
                     self.find_bar(ui, p);
                 }

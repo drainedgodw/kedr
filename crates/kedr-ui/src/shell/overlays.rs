@@ -225,6 +225,21 @@ impl Shell {
             .show(ctx, |ui| {
             ui.set_width((if matches!(dialog, Dialog::Usages) { 640.0_f32 } else { 520.0_f32 }).min(ctx.content_rect().width() - 80.));
             match &dialog {
+                Dialog::Reload(query) => {
+                    ui.heading("Reload file from disk?");
+                    let name = query.path.file_name().unwrap_or_default().to_string_lossy();
+                    ui.add(egui::Label::new(RichText::new(name).strong()).truncate()).on_hover_text(query.path.display().to_string());
+                    let dirty = self.workspace.as_ref().and_then(Workspace::active).is_some_and(|t| t.document.is_dirty());
+                    if dirty { ui.label(RichText::new("Unsaved edits in this file will be discarded.").color(p.amber)); }
+                    ui.label("Reload reads the current disk contents and resets this file's undo history. No file is written. Other tabs are unchanged.");
+                    ui.add_space(12.);
+                    ui.horizontal_wrapped(|ui| {
+                        if ui.button(if dirty { "Reload and discard edits" } else { "Reload file" }).clicked() {
+                            self.begin_reload(query.clone()); close = true;
+                        }
+                        if ui.button("Cancel").clicked() { close = true; self.editor_cache.focus_next = true; }
+                    });
+                }
                 Dialog::Keymap => {
                     ui.heading("Keyboard shortcuts");
                     ui.label(RichText::new("Search and customize the implemented actions.").color(p.muted));
@@ -473,6 +488,9 @@ impl Shell {
             }
         }
         if close {
+            if matches!(dialog, Dialog::Reload(_)) {
+                self.editor_cache.focus_next = true;
+            }
             if matches!(dialog, Dialog::Usages) {
                 self.usages = None;
                 self.editor_cache.focus_next = true;
@@ -563,6 +581,23 @@ impl Shell {
                         fixture: true,
                     });
                     self.dialog = Some(Dialog::Usages);
+                }
+            }
+            "disk-changed" | "disk-missing" | "disk-reload" => {
+                self.status = "Capture fixture: disk-change/reload layout only".into();
+                if let Some(tab) = self.workspace.as_mut().and_then(Workspace::active_mut) {
+                    let _ = tab.insert("// unsaved capture fixture\n");
+                    self.disk_notice = Some((
+                        tab.document.path.clone(),
+                        if state == "disk-missing" {
+                            kedr_workbench::DiskState::Missing
+                        } else {
+                            kedr_workbench::DiskState::Changed
+                        },
+                    ));
+                }
+                if state == "disk-reload" {
+                    self.request_reload();
                 }
             }
             "language-trust" => self.dialog = Some(Dialog::LanguageTrust),

@@ -85,3 +85,12 @@ remain visible at compact sizes; the result viewport scrolls independently.
 Dark/light/compact native scenes are capture fixtures and are labeled as such.
 Results are explicitly selected, never automatically applied from a stale query.
 This is not the final persistent usages tool-window design.
+
+## External-change decisions
+
+Active-file changes use a compact inline warning above the editor, not an
+automatically opened destructive dialog. Changed/missing/unreadable states keep
+text visible and offer a single explicit Reload from disk action. The shared
+confirmation names the file, warns about dirty edits and undo reset, wraps buttons
+at minimum size and does not default incidental Enter to discarding text.
+Escape/Cancel returns to editing. See [file contract](FILES.md) for actual limits.

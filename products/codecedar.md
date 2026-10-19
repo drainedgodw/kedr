@@ -130,3 +130,12 @@ Up/Down and Enter open a location, Escape dismisses. Declaration is excluded.
 Open unsaved Rust overlays and version guards apply; the list is discarded after
 editor changes. See the language contract for bounds and unsupported external
 targets. This is not rename, literal search, or a persistent usages index.
+
+### Outside file changes
+
+Active-file content polling reports changed/missing/unreadable disk contents
+without replacing your edits. File → Reload file from disk (also remappable in
+the command/keyboard registry) reads in the background after explicit confirmation
+and rejects stale results. Reload discards only the confirmed file's edits and
+undo history. It is not merge, Save As, crash recovery or a recursive watcher.
+See the [file reconciliation contract](../docs/studio/FILES.md).

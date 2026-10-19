@@ -382,3 +382,47 @@ Completion, semantic rename, debugging, Git integration and a PTY terminal remai
 unimplemented. Only CodeCedar is runnable. No full JetBrains parity, performance
 advantage or new cross-platform installer acceptance is claimed. Hosted CI for
 this revision must be checked separately after publication.
+
+## Active-file reconciliation and confirmed reload
+
+The preceding `usages` revision d50e0ff2 passed hosted workflow 39130272337.
+That result is not evidence for this revision; its hosted CI must be checked after
+publication.
+
+This revision passed 166 default Rust workspace tests on Linux, plus the two
+separately invoked ignored-by-default real rust-analyzer definition/reference
+tests, 18 Python installer tests, formatting, warnings-denied workspace/all-target
+Clippy, catalog/generated-keymap validation and a native debug build. No dependency
+was added. The Unix-only escaped-symlink test is included in the Linux count.
+
+New coverage comprises one immutable saved-baseline test, five file-query tests,
+eight UI reload tests and one desktop worker test. Real temporary-file mutations
+exercise equal-length rewrites, deletion, Unicode/BOM/CRLF, invalid UTF-8,
+oversized/non-regular targets and guarded saves. Tests check edit/undo/save/reopen,
+tab/workspace invalidation, failed reads preserving dirty text and undo, and other
+dirty tabs staying unchanged. An abandoned reload followed by an identical retry
+has a distinct request token: the old completion cannot finish the new request.
+Beginning workspace opening clears reload state even if the later scan fails.
+Synthetic egui frames at 760x520 verify incidental Enter does not discard edits
+and Escape cancels confirmation. These are not physical keyboard/accessibility
+acceptance tests.
+
+Forty-five native PNG captures were generated from the accepted binary; the
+manifest records the binary and individual image hashes. Eight were individually
+reviewed: disk-changed, compact-disk-changed, light-disk-changed, disk-missing,
+disk-reload, compact-disk-reload, light-disk-reload and commands. The other 37
+were generated, not all visually re-reviewed. The inline notice now spans the
+editor width; the compact explanatory label avoids the earlier unnecessary wrap.
+Confirmation text and actions fit the reviewed 760x520 minimum. Dark/light states
+and 37 command results were inspected. Disk scenes are explicitly labelled
+layout fixtures, not live disk-change evidence; the worker test supplies actual
+filesystem evidence. No unreadable-error screenshot was reviewed this iteration.
+
+Only the active file is polled, about every two seconds; this is not recursive
+watching, project-tree refresh, recovery or merge. Reads run on the shared bounded
+worker with no hard OS-read timeout. No cross-process lock/atomicity is promised;
+saves still block the UI and Save all remains nontransactional. Reload explicitly
+resets undo. See FILES.md for guards and AUDIT.md for prioritized unfinished work.
+Persistent LSP, completion/hover/live diagnostics, safe semantic rename, Git, PTY,
+DAP, crash recovery and physical target-platform acceptance remain open. Only
+CodeCedar is runnable; full JetBrains parity is not claimed.

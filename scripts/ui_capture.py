@@ -12,6 +12,7 @@ scenes += [("recent-files", "recent", False, "900x640", True)]
 scenes += [("minimum-editor", "editor", False, "760x520", True), ("minimum-keymap", "keymap", False, "760x520", True)]
 scenes += [("language-trust", "language-trust", False, "1440x900", True), ("compact-language-trust", "language-trust", False, "760x520", True), ("light-language-trust", "language-trust", True, "900x640", True)]
 scenes += [("usages", "usages", False, "1440x900", True), ("compact-usages", "usages", False, "760x520", True), ("light-usages", "usages", True, "900x640", True), ("empty-usages", "usages-empty", False, "900x640", True), ("compact-many-usages", "usages-many", False, "760x520", True)]
+scenes += [("disk-changed", "disk-changed", False, "1440x900", True), ("compact-disk-changed", "disk-changed", False, "760x520", True), ("light-disk-changed", "disk-changed", True, "900x640", True), ("disk-missing", "disk-missing", False, "760x520", True), ("disk-reload", "disk-reload", False, "1440x900", True), ("compact-disk-reload", "disk-reload", False, "760x520", True), ("light-disk-reload", "disk-reload", True, "900x640", True)]
 files=[]
 for name,state,light,size,project in scenes:
     png=a.out/(name+'.png');cmd=[str(a.binary.resolve())]

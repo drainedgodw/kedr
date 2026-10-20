@@ -87,6 +87,10 @@ class NativeLinuxTests(unittest.TestCase):
         for dependency in ('libXcursor', 'libxkbcommon-x11', 'libglvnd-egl', 'libglvnd-glx'):
             self.assertIn(dependency, native.RUNTIME['rpm'])
 
+    def test_rpm_wayland_uses_library_provider_not_nonexistent_package(self):
+        self.assertIn('libwayland-client.so.0()(64bit)', native.RUNTIME['rpm'])
+        self.assertNotIn('wayland-libs-client', native.RUNTIME['rpm'])
+
     def test_deb_dependencies_include_generated_abi_floor(self):
         result = subprocess.CompletedProcess([], 0, 'shlibs:Depends=libc6 (>= 2.39), libgcc-s1 (>= 4.2)\n', '')
         with patch.object(native, 'run', return_value=result) as command:

@@ -21,7 +21,7 @@ were executed locally; their new hosted results are required.
 
 - Full Rust workspace: **192 passed, 0 failed, 2 explicitly ignored live tests**.
 - The two real rust-analyzer navigation integration tests: **2 passed separately**.
-- Python: **37 product/distribution/parser contract tests + 19 installer tests**.
+- Python: **38 product/distribution/parser contract tests + 19 installer tests**.
   Synthetic ELF/Mach-O/PE fixtures validate parsers/staging, not native OS execution.
 - Full catalog structural inventory: **33 entries, 1 runtime, 32 NOT_IMPLEMENTED**.
   Installer negative coverage refuses every one of the 32 planned entries.
@@ -108,3 +108,18 @@ MSCTF; VC redistributable/vendor DLLs are still refused, including delay imports
 One extra regression covers those system libraries. Fedora test equipment now
 explicitly installs shadow-utils/util-linux for its non-root rendering harness.
 New hosted results remain separate; do not label the first failed run green.
+
+## Native hosted follow-up and Fedora dependency correction
+
+Studio follow-up [39483947331](https://github.com/drainedgodw/kedr/actions/runs/39483947331)
+observed completed successful macOS, Ubuntu and MSRV jobs. Windows had reached
+artifact upload after passing its native checks; Arch was still building at that
+observation. These are native hosted results, not Linux parser simulations.
+
+The first distribution run [39483386169](https://github.com/drainedgodw/kedr/actions/runs/39483386169)
+built both packages and passed clean Ubuntu installation. Fedora clean installation
+correctly failed: `nothing provides wayland-libs-client`. The RPM now requests the
+64-bit `libwayland-client.so.0()(64bit)` capability rather than a nonexistent package
+name, letting DNF resolve the real distribution provider. A regression checks the
+capability and rejects the old name. No `--nodeps`, `--skip-broken` or dependency
+verification bypass was added. New Fedora clean-install acceptance is still required.

@@ -24,7 +24,7 @@ RUNTIME = {
             'libxkbcommon-x11-0', 'libwayland-client0', 'libegl1', 'libgl1',
             'xdg-desktop-portal'],
     'rpm': ['libX11', 'libXcursor', 'libXi', 'libXrandr', 'libxkbcommon',
-            'libxkbcommon-x11', 'wayland-libs-client', 'libglvnd-egl',
+            'libxkbcommon-x11', 'libwayland-client.so.0()(64bit)', 'libglvnd-egl',
             'libglvnd-glx', 'xdg-desktop-portal'],
 }
 RECOMMENDS = {'deb': ['xdg-desktop-portal-gtk'], 'rpm': ['xdg-desktop-portal-gtk']}

@@ -94,7 +94,7 @@ class NativeLinuxTests(unittest.TestCase):
         self.assertIn('libc6 (>= 2.39)', deps)
         self.assertIn('libxcursor1', deps)
         self.assertEqual(command.call_args.args[0][0], 'dpkg-shlibdeps')
-        self.assertTrue(command.call_args.args[0][2].startswith('-e/'))
+        self.assertEqual(command.call_args.args[0][2], '-e' + str(self.binary.resolve()))
 
     def test_absent_generated_dependencies_fail_closed(self):
         with patch.object(native, 'run', return_value=subprocess.CompletedProcess([], 0, '', '')):

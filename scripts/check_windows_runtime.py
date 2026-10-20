@@ -16,7 +16,7 @@ dwmapi dwrite dxgi gdi32 imm32 iphlpapi kernel32 ktmw32 msimg32 msvcrt mswsock
 ncrypt netapi32 normaliz ntdll ole32 oleaut32 opengl32 powrprof propsys psapi
 rpcrt4 secur32 setupapi shcore shell32 shlwapi ucrtbase user32 userenv uxtheme
 version windowscodecs winhttp wininet winmm winspool wintrust winusb ws2_32
-wtsapi32 rstrtmgr'''.split())
+wtsapi32 rstrtmgr uiautomationcore oleacc msctf'''.split())
 
 
 def imported_dlls(data):

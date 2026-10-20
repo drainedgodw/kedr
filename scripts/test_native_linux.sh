@@ -23,7 +23,7 @@ if ldd /usr/bin/codecedar | grep -q 'not found'; then echo 'Unresolved linked ru
 if [[ $format == deb ]]; then
   apt-get install -y python3 desktop-file-utils xvfb xauth libgl1-mesa-dri
 else
-  dnf install -y python3 desktop-file-utils xorg-x11-server-Xvfb xorg-x11-xauth mesa-dri-drivers
+  dnf install -y python3 desktop-file-utils xorg-x11-server-Xvfb xorg-x11-xauth mesa-dri-drivers shadow-utils util-linux
 fi
 desktop-file-validate /usr/share/applications/io.github.drainedgodw.CodeCedar.desktop
 test -f /usr/share/icons/hicolor/scalable/apps/codecedar.svg

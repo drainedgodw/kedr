@@ -21,7 +21,7 @@ were executed locally; their new hosted results are required.
 
 - Full Rust workspace: **192 passed, 0 failed, 2 explicitly ignored live tests**.
 - The two real rust-analyzer navigation integration tests: **2 passed separately**.
-- Python: **36 product/distribution/parser contract tests + 19 installer tests**.
+- Python: **37 product/distribution/parser contract tests + 19 installer tests**.
   Synthetic ELF/Mach-O/PE fixtures validate parsers/staging, not native OS execution.
 - Full catalog structural inventory: **33 entries, 1 runtime, 32 NOT_IMPLEMENTED**.
   Installer negative coverage refuses every one of the 32 planned entries.
@@ -92,3 +92,19 @@ Only one product runtime exists. The 32 plans do not have runtime tests or relea
 Runtime library packaging does not install optional Rust compilers/analyzer/project
 crates. Signed releases/update channels, all audit gaps, cross-distro/ARM64 coverage
 and physical target desktop acceptance remain open.
+
+## First hosted distribution iteration
+
+Studio run [39483386307](https://github.com/drainedgodw/kedr/actions/runs/39483386307)
+passed Windows Rust workspace and live analyzer tests, including the previously
+failing recovery deletion. It then exposed a Windows-specific test assumption:
+the mocked Debian scanner command assertion expected a Unix `/` absolute path.
+The assertion now checks the exact platform-native resolved argument. No native
+Debian scanner is executed on Windows by that contract test.
+
+Dependency-source inspection also showed AccessKit's UIAutomationCore calls. The
+Windows OS-DLL allowlist now explicitly recognizes UIAutomationCore, Oleacc and
+MSCTF; VC redistributable/vendor DLLs are still refused, including delay imports.
+One extra regression covers those system libraries. Fedora test equipment now
+explicitly installs shadow-utils/util-linux for its non-root rendering harness.
+New hosted results remain separate; do not label the first failed run green.

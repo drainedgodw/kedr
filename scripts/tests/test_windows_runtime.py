@@ -50,6 +50,10 @@ class WindowsRuntimeTests(unittest.TestCase):
     def test_os_runtime_and_api_sets_are_allowed(self):
         runtime.check(['ucrtbase.dll', 'msvcrt.dll', 'api-ms-win-core-synch-l1-2-0.dll'])
 
+    def test_accessibility_and_ime_dependencies_are_windows_system_libraries(self):
+        # AccessKit calls Uia* from UIAutomationCore; these are not VC redistributables.
+        runtime.check(['uiautomationcore.dll', 'oleacc.dll', 'msctf.dll'])
+
     def test_truncated_or_not_pe_fails_closed(self):
         for data in (b'not PE', fixture()[:520]):
             with self.assertRaises(ValueError):

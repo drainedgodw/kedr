@@ -147,3 +147,81 @@ fn saved_snapshot_is_immutable_and_never_exposes_unsaved_edits() {
     assert_eq!(d.saved_snapshot().as_ref(), "ours");
     assert!(!std::sync::Arc::ptr_eq(&saved, &d.saved_snapshot()));
 }
+
+#[test]
+fn oversized_edited_document_cannot_be_saved_into_an_unopenable_file() {
+    let dir = TempDir::new();
+    let p = dir.0.join("a");
+    fs::write(&p, "original").unwrap();
+    let mut d = Document::open(&p).unwrap();
+    d.buffer
+        .replace(0..8, &"x".repeat(MAX_DOCUMENT_BYTES + 1))
+        .unwrap();
+    assert!(
+        d.save().is_err(),
+        "save must enforce the same size limit as open"
+    );
+    assert_eq!(fs::read_to_string(&p).unwrap(), "original");
+    assert!(d.is_dirty());
+    assert_eq!(fs::read_dir(&dir.0).unwrap().count(), 1);
+}
+
+#[cfg(unix)]
+#[test]
+fn save_rejects_rebound_symlink_target_without_replacing_it() {
+    let dir = TempDir::new();
+    let p = dir.0.join("a");
+    let external = dir.0.join("external");
+    fs::write(&p, "original").unwrap();
+    fs::write(&external, "original").unwrap();
+    let mut d = Document::open(&p).unwrap();
+    d.buffer.replace(0..8, "ours").unwrap();
+    fs::remove_file(&p).unwrap();
+    std::os::unix::fs::symlink(&external, &p).unwrap();
+    assert!(
+        d.save().is_err(),
+        "a rebound path is not the originally opened file"
+    );
+    assert!(fs::symlink_metadata(&p).unwrap().file_type().is_symlink());
+    assert_eq!(fs::read_to_string(&external).unwrap(), "original");
+    assert!(d.is_dirty());
+}
+
+#[cfg(unix)]
+#[test]
+fn save_preserves_private_and_executable_permission_bits() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = TempDir::new();
+    let p = dir.0.join("a");
+    fs::write(&p, "original").unwrap();
+    for mode in [0o600, 0o755] {
+        fs::set_permissions(&p, fs::Permissions::from_mode(mode)).unwrap();
+        let mut d = Document::open(&p).unwrap();
+        d.buffer.replace(0..d.buffer.len_bytes(), "next").unwrap();
+        d.save().unwrap();
+        assert_eq!(fs::metadata(&p).unwrap().permissions().mode() & 0o777, mode);
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn save_rejects_rebound_parent_directory() {
+    let dir = TempDir::new();
+    let parent = dir.0.join("parent");
+    let other = dir.0.join("other");
+    fs::create_dir_all(&parent).unwrap();
+    fs::create_dir_all(&other).unwrap();
+    fs::write(parent.join("a"), "original").unwrap();
+    fs::write(other.join("a"), "original").unwrap();
+    let mut d = Document::open(parent.join("a")).unwrap();
+    d.buffer.replace(0..8, "ours").unwrap();
+    fs::rename(&parent, dir.0.join("moved")).unwrap();
+    std::os::unix::fs::symlink(&other, &parent).unwrap();
+    assert!(d.save().is_err());
+    assert_eq!(fs::read_to_string(other.join("a")).unwrap(), "original");
+    assert_eq!(
+        fs::read_to_string(dir.0.join("moved/a")).unwrap(),
+        "original"
+    );
+    assert!(d.is_dirty());
+}

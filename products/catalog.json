@@ -16,7 +16,11 @@
         "Trustworthy edit/save/recovery",
         "Project navigation and keyboard workflows",
         "Incremental rendering and measured responsiveness"
-      ]
+      ],
+      "implementation": {
+        "package": "kedr-studio",
+        "manifest": "apps/studio/Cargo.toml"
+      }
     },
     {
       "slug": "ideacedar",
@@ -32,7 +36,8 @@
         "JVM project import and build models",
         "Semantic completion, navigation and refactoring",
         "JVM debugging, tests and framework tooling"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "pycedar",
@@ -48,7 +53,8 @@
         "Interpreter, virtual environment and packaging management",
         "Python analysis, refactoring and tests",
         "Debugging, notebooks and web framework workflows"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "webcedar",
@@ -64,7 +70,8 @@
         "JS/TS semantic services and frameworks",
         "Node/package manager/test runner integration",
         "Browser and Node debugging"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "phpcedar",
@@ -80,7 +87,8 @@
         "PHP/Composer project model",
         "Semantic tooling and framework integration",
         "PHP tests and debugging"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "rubycedar",
@@ -96,7 +104,8 @@
         "Ruby environments and dependency management",
         "Ruby/Rails semantic tooling",
         "Tests and debugger integration"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "gocedar",
@@ -112,7 +121,8 @@
         "Go modules and workspace model",
         "Semantic tooling and refactoring",
         "Tests, debugging and profiling integration"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "cppcedar",
@@ -128,7 +138,8 @@
         "CMake/toolchain and compilation database support",
         "C/C++ semantic services and refactoring",
         "Native debugging, sanitizers and test runners"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "rustcedar",
@@ -144,7 +155,8 @@
         "Cargo/rust-analyzer project integration",
         "Versioned diagnostics, completion and refactoring",
         "Debugging, tests and profiling integration"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "dotcedar",
@@ -160,7 +172,8 @@
         "Solution/MSBuild/NuGet project model",
         "C#/F# semantic services and refactoring",
         ".NET debugging and game engine workflows"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "datacedar",
@@ -176,7 +189,8 @@
         "Permission-aware database drivers and connection management",
         "SQL completion and schema navigation",
         "Query execution, result editing and safe transactions"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "metacedar",
@@ -192,7 +206,8 @@
         "Language definition and projectional editing",
         "Type systems and generation",
         "Language testing and migration tooling"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "boxcedar",
@@ -208,7 +223,8 @@
         "Verified packages and channel management",
         "Installation, removal and rollback",
         "Local project launch and version management"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "sharpcedar",
@@ -224,7 +240,8 @@
         "Permission-scoped Visual Studio integration",
         "C# inspections and refactoring",
         "Solution navigation and test workflows"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "sharpcppcedar",
@@ -240,7 +257,8 @@
         "Visual Studio C++ project integration",
         "C++ analysis and refactoring",
         "Native tests and navigation"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "peekcedar",
@@ -256,7 +274,8 @@
         "Assembly metadata browsing",
         "Legal/permission-aware decompilation workflows",
         "Source/symbol navigation"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "tracecedar",
@@ -272,7 +291,8 @@
         "Runtime sampling and tracing",
         "Timeline and call tree exploration",
         "Reproducible profile comparison"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "memorycedar",
@@ -288,7 +308,8 @@
         "Managed runtime heap snapshots",
         "Allocation/retention analysis",
         "Leak investigation and profile comparison"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "covercedar",
@@ -304,7 +325,8 @@
         "Runtime coverage collection",
         "Test runner integration",
         "Branch/statement coverage and comparison"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "trackcedar",
@@ -320,7 +342,8 @@
         "Issues, permissions and workflow engine",
         "Boards, search and reporting",
         "Audit trails and import/export"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "buildcedar",
@@ -336,7 +359,8 @@
         "Build agents, queues and isolation",
         "Pipeline configuration and secrets boundaries",
         "Artifacts, logs and build history"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "hubcedar",
@@ -352,7 +376,8 @@
         "Identity and authentication boundaries",
         "Role/permission administration",
         "Audited service integrations"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "labcedar",
@@ -368,7 +393,8 @@
         "Reproducible notebook execution",
         "Data access and compute isolation",
         "Collaboration and shareable results"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "qualitycedar",
@@ -384,7 +410,8 @@
         "Static analysis pipelines",
         "Baselines, policy gates and reports",
         "CI integration and findings navigation"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "paircedar",
@@ -400,7 +427,8 @@
         "Explicitly authorized shared sessions",
         "Editor synchronization and permission controls",
         "Connection recovery and collaboration security"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "gatecedar",
@@ -416,7 +444,8 @@
         "Secure remote host connections",
         "Workspace discovery and lifecycle",
         "Version/protocol compatibility checks"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "cloudcedar",
@@ -432,7 +461,8 @@
         "Isolated environment provisioning",
         "Resource/policy controls",
         "Workspace lifecycle and auditability"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "learncedar",
@@ -448,7 +478,8 @@
         "Courses and exercise workflows",
         "Local test-based feedback",
         "Progress and curriculum authoring"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "agentcedar",
@@ -464,7 +495,8 @@
         "Explicit capabilities and execution permissions",
         "Reviewable plans, patches and test evidence",
         "Provider abstraction and cancellation"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "aicedar",
@@ -480,7 +512,8 @@
         "Local/remote provider choice",
         "Explicit data-sharing and context limits",
         "Consent-based assistance without cloud dependency"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "aircedar",
@@ -496,7 +529,8 @@
         "Audited agent sessions and workspace isolation",
         "Provider/protocol interoperability",
         "Review, cancellation and governance"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "marketcedar",
@@ -512,7 +546,8 @@
         "Signed manifests and permission declarations",
         "Compatibility/dependency validation",
         "Review, updates and revocation"
-      ]
+      ],
+      "implementation": null
     },
     {
       "slug": "mattercedar",
@@ -528,7 +563,8 @@
         "Research the product scope before implementation",
         "Document data boundaries and service contracts",
         "Approve a testable specification before feature claims"
-      ]
+      ],
+      "implementation": null
     }
   ]
 }

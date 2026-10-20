@@ -473,3 +473,39 @@ injection, retention/privacy settings, full-session restore, encrypted storage a
 physical Windows/macOS acceptance remain open. Project saves remain synchronous;
 Save all is not a cross-file transaction. Only CodeCedar is runnable, not the full
 planned suite or a complete JetBrains equivalent.
+
+## Whole-suite adversarial audit revision
+
+The [complete audit](../suite/PRODUCT_AUDIT.md) records 90 typed findings, each
+with evidence and an acceptance gate. Default local workspace tests: **191 passed**,
+zero failed, two live tests ignored by default and separately **both passed** with
+an installed rust-analyzer. Linux installer Python: **19 passed**; product-contract
+Python: **14 passed**. Four regression tests failed before the fixes and passed
+afterwards. Further tests check parent rebinding, permission preservation and
+retired/newer/unrelated journal deletion boundaries.
+
+Workspace/all-targets Clippy with warnings denied, fmt, native debug build,
+catalog/keymap, diff whitespace and Rust **1.88.0 all-targets workspace check**
+pass locally. Core release tests pass; Unicode endurance checked 10,000 operations
+and verified three background snapshots. This does not establish UI performance.
+
+The real Linux installer separately rejected all 32 planned catalog products
+without file side effects. Actual binary install, verify, reinstall, verify,
+launcher help and uninstall passed in an isolated HOME with spaces, including
+installed payload hash verification. Planned products did not receive runtime
+feature tests because no such runtime exists.
+
+The final binary produced **51** native capture fixtures with verified hashes.
+**Four** were individually reviewed: compact recovery, delete confirmation,
+32-offer compact recovery and nonmatching-workspace light recovery. Controls and
+footer fit; other 47 captures were not individually visually re-reviewed in this
+revision. The two stress states are new layout fixtures, not real journal data.
+Binary SHA-256: `96d75dd0f7470ae53d552bcfa916d768f8c09ec73429bece5d55a0b8a7a442b8`.
+
+Initial live/native attempts failed before installing rust-analyzer/libXcursor;
+a first installer harness expected the wrong binary path. Corrected final runs
+passed. These setup/harness failures were not silently counted as acceptance.
+Previous recovery hosted run **39305573342** is now observed successful in all
+four jobs (Linux/Windows/macOS desktop, Arch package), including the Windows
+installer. New audit commit hosted acceptance remains separate. Physical-machine,
+assistive-technology, complete GUI crash/restore and power-loss gates remain open.

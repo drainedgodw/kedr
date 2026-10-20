@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Validate the public catalog and shortcut table against actual source data."""
 import json
+from audit_products import inventory
 import re
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
 root = Path(__file__).resolve().parents[1]
+inventory(root)  # Fail on absent runtime evidence, unknown states and unsafe paths.
 catalog = json.loads((root / 'products/catalog.json').read_text(encoding="utf-8"))['products']
 assert len({p['slug'] for p in catalog}) == len(catalog)
 assert len({p['monogram'] for p in catalog}) == len(catalog)

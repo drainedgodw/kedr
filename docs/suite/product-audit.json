@@ -1,0 +1,726 @@
+{
+  "baseline": "ed088a67342034a76da59a6e0c4ae034b388ec6a",
+  "scope": "Source audit, runnable workspace acceptance and all-product structural inventory; not runtime execution of absent products",
+  "findings": [
+    {
+      "id": "K-001",
+      "priority": "P0",
+      "status": "FIXED",
+      "title": "Временный save-файл был доступнее приватного исходника",
+      "evidence": "src/document.rs; staging_is_private_before_any_document_bytes_are_written",
+      "acceptance": "Создавать Unix stage сразу с 0600; подтвердить до записи байтов. Windows ACL — отдельная проверка."
+    },
+    {
+      "id": "K-002",
+      "priority": "P0",
+      "status": "FIXED",
+      "title": "Save мог создать файл, который сам Open откажется читать",
+      "evidence": "tests/files.rs; oversized_edited_document_cannot_be_saved_into_an_unopenable_file",
+      "acceptance": "Лимит 16 MiB проверяется до файловых операций; диск и dirty-буфер сохраняются при отказе."
+    },
+    {
+      "id": "K-003",
+      "priority": "P0",
+      "status": "FIXED",
+      "title": "Подмена открытого пути симлинком не останавливала сохранение",
+      "evidence": "tests/files.rs; save_rejects_rebound_symlink_target_without_replacing_it; save_rejects_rebound_parent_directory",
+      "acceptance": "Отказывать при наблюдаемой смене канонического пути/необычном типе; не заменять ссылку. Не выдавать это за TOCTOU-защиту."
+    },
+    {
+      "id": "K-004",
+      "priority": "P0",
+      "status": "FIXED",
+      "title": "Удалённый recovery-снимок мог воскреснуть из старой ревизии",
+      "evidence": "apps/studio/src/recovery.rs; deleting_latest_snapshot_does_not_resurrect_retired_revisions",
+      "acceptance": "Удалять старые номерные ревизии до выбранной; новые/посторонние/tmp не трогать; при ошибке оставлять выбранную."
+    },
+    {
+      "id": "K-005",
+      "priority": "P1",
+      "status": "FIXED",
+      "title": "Каталог проверял логотипы лучше, чем наличие продукта",
+      "evidence": "scripts/audit_products.py; scripts/tests/test_product_audit.py",
+      "acceptance": "Явное implementation/null для всех 33; package/manifest/main.rs, уникальность runtime, отрицательные тесты и артефакт CI. Это не runtime-тест."
+    },
+    {
+      "id": "K-006",
+      "priority": "P2",
+      "status": "FIXED",
+      "title": "Руководство одновременно обещало recovery и отрицало его наличие",
+      "evidence": "products/codecedar.md, раздел Limits",
+      "acceptance": "Убрать противоречие и назвать границы: plaintext checkpoint, не autosave проекта."
+    },
+    {
+      "id": "K-007",
+      "priority": "P0",
+      "status": "OPEN",
+      "title": "Сохранение всё ещё способно заморозить интерфейс",
+      "evidence": "src/document.rs; crates/kedr-workbench/src/workspace.rs; docs/studio/FILES.md",
+      "acceptance": "Worker save с immutable snapshot, версиями и отказом от устаревшего завершения; замедленный filesystem не блокирует UI."
+    },
+    {
+      "id": "K-008",
+      "priority": "P0",
+      "status": "OPEN",
+      "title": "Save all — последовательный цикл, не транзакция",
+      "evidence": "crates/kedr-workbench/src/workspace.rs::save_all",
+      "acceptance": "Предварительная проверка всех файлов, явный отчёт частичного успеха и recovery; не обещать атомарность нескольких файлов."
+    },
+    {
+      "id": "K-009",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Нет Save As, особенно болезненно для пропавших файлов",
+      "evidence": "docs/studio/RECOVERY.md; docs/suite/AUDIT.md",
+      "acceptance": "Явный безопасный выбор нового пути, overwrite-confirmation, обновление identity и тест отмены."
+    },
+    {
+      "id": "K-010",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Конфликт на диске заканчивается отказом, а не инструментом разрешения",
+      "evidence": "crates/kedr-ui/src/shell/disk.rs; docs/studio/FILES.md",
+      "acceptance": "Diff base/disk/buffer, выбор пользователя, merge/сохранение копии без потери правок."
+    },
+    {
+      "id": "K-011",
+      "priority": "P0",
+      "status": "OPEN",
+      "title": "Нет блокировки против параллельного внешнего писателя",
+      "evidence": "src/document.rs::save; docs/studio/RECOVERY.md",
+      "acceptance": "Документированный concurrency contract и race/fault tests; проверка перед rename не равна writer lock."
+    },
+    {
+      "id": "K-012",
+      "priority": "P0",
+      "status": "OPEN",
+      "title": "Полная power-loss durability обычного Save не доказана",
+      "evidence": "src/document.rs::save; после rename нет fsync родительского каталога",
+      "acceptance": "Тестируемый commit protocol и fault injection, включая sync каталога, ошибки после commit и разные ОС/ФС."
+    },
+    {
+      "id": "K-013",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Материализация recovery ещё выполняется на render thread",
+      "evidence": "apps/studio/src/main.rs; crates/kedr-workbench/src/recovery.rs::capture",
+      "acceptance": "Снять immutable snapshot быстро; сборку строк/сравнение перенести с кадра, замерить большие dirty-tabs."
+    },
+    {
+      "id": "K-014",
+      "priority": "P0",
+      "status": "OPEN",
+      "title": "Последние правки до checkpoint можно потерять",
+      "evidence": "apps/studio/src/main.rs; docs/studio/RECOVERY.md",
+      "acceptance": "Задать измеримый RPO, испытать kill до/во время/после checkpoint; не обещать per-keystroke persistence."
+    },
+    {
+      "id": "K-015",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Recovery сохраняет секреты обычным текстом",
+      "evidence": "docs/studio/RECOVERY.md",
+      "acceptance": "Понятные privacy-controls, исключения, опциональное защищённое хранение; threat model до слова «secure»."
+    },
+    {
+      "id": "K-016",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Старые backup живут бессрочно без retention policy",
+      "evidence": "docs/studio/RECOVERY.md",
+      "acceptance": "Настраиваемый срок/объём, подтверждаемый purge, видимое потребление диска и тесты нескольких сессий."
+    },
+    {
+      "id": "K-017",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Повреждённый newest journal оставляется без мастера ремонта",
+      "evidence": "apps/studio/src/recovery.rs::discover",
+      "acceptance": "Экспорт/диагностика/явное удаление повреждённого снимка; не молча откатываться к устаревшему тексту."
+    },
+    {
+      "id": "K-018",
+      "priority": "P2",
+      "status": "OPEN",
+      "title": "Recovery не восстанавливает undo, selections и всю сессию",
+      "evidence": "crates/kedr-workbench/src/recovery.rs::Draft; docs/studio/RECOVERY.md",
+      "acceptance": "Версионированный session contract с миграцией/квотами и безопасным отказом от повреждённых данных."
+    },
+    {
+      "id": "K-019",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Квоты discovery могут скрыть часть сохранённых сессий",
+      "evidence": "apps/studio/src/recovery.rs::discover",
+      "acceptance": "Пагинация/управление retained data; тест более 32 offers, 1024 entries, 128 revisions и суммарных 64 MiB."
+    },
+    {
+      "id": "K-020",
+      "priority": "P0",
+      "status": "OPEN",
+      "title": "Зависшее OS I/O способно задержать recovery и выход",
+      "evidence": "apps/studio/src/main.rs; docs/studio/RECOVERY.md",
+      "acceptance": "Явная UX-политика долгого shutdown, отмена где доступна, тест зависшего I/O; не блокировать render loop."
+    },
+    {
+      "id": "K-021",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Preferences используют фиксированный PID temp и синхронную запись",
+      "evidence": "apps/studio/src/preferences.rs::write",
+      "acceptance": "Уникальный stage, очистка при всех ошибках, fault tests и неблокирующее сохранение настроек."
+    },
+    {
+      "id": "K-022",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Поиск по проекту не видит несохранённый код",
+      "evidence": "crates/kedr-workbench/src/search.rs",
+      "acceptance": "Версионированные overlay открытых буферов; дедупликация с диском и stale-result tests."
+    },
+    {
+      "id": "K-023",
+      "priority": "P2",
+      "status": "OPEN",
+      "title": "Поиск только literal/case-sensitive, без привычных режимов",
+      "evidence": "crates/kedr-workbench/src/search.rs::search_project",
+      "acceptance": "Case/word/regex/file-mask режимы с ограничением стоимости и тестами Unicode/пустых совпадений."
+    },
+    {
+      "id": "K-024",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Индекс файлов устаревает после внешнего создания и удаления",
+      "evidence": "crates/kedr-workbench/src/workspace.rs; docs/studio/FILES.md",
+      "acceptance": "Фоновый rescan/watch с поколениями; не терять dirty-tabs при смене tree."
+    },
+    {
+      "id": "K-025",
+      "priority": "P2",
+      "status": "OPEN",
+      "title": "Project scan использует фиксированные исключения вместо полноценного ignore",
+      "evidence": "src/project.rs::Project::scan",
+      "acceptance": "Определённая политика .gitignore/локальных исключений, вложенные правила, UI включения игнорируемого."
+    },
+    {
+      "id": "K-026",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Нельзя нормально создавать, переименовывать и удалять файлы из проекта",
+      "evidence": "docs/suite/AUDIT.md; crates/kedr-workbench/src/workspace.rs",
+      "acceptance": "Безопасные file operations с подтверждением dirty/conflict, обновлением индекса и rollback/recovery."
+    },
+    {
+      "id": "K-027",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Каждый semantic jump запускает новый rust-analyzer",
+      "evidence": "crates/kedr-workbench/src/lsp/process.rs; docs/studio/LANGUAGE.md",
+      "acceptance": "Persistent session, didChange/didClose, workspace generation, restart/cancel и stale guards."
+    },
+    {
+      "id": "K-028",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Нет semantic completion — IDE без автодополнения пока редактор",
+      "evidence": "docs/studio/LANGUAGE.md; docs/suite/PARITY.md",
+      "acceptance": "Completion с версией документа, cancellation, корректными UTF-16 edits и undo."
+    },
+    {
+      "id": "K-029",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Нет hover/signature help",
+      "evidence": "docs/studio/LANGUAGE.md; docs/suite/PARITY.md",
+      "acceptance": "Ненавязчивый async hover/signature с sanitize содержимого и lifecycle tests."
+    },
+    {
+      "id": "K-030",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Нет живой LSP diagnostics; Cargo report относится к saved sources",
+      "evidence": "docs/studio/DIAGNOSTICS.md; docs/studio/LANGUAGE.md",
+      "acceptance": "publishDiagnostics по версии/URI, очистка старых сообщений, overlays и устойчивость к restart."
+    },
+    {
+      "id": "K-031",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Нет semantic rename; textual replacement не считается",
+      "evidence": "docs/suite/AUDIT.md; docs/suite/PARITY.md",
+      "acceptance": "Preview multi-file WorkspaceEdit, версии, конфликтные решения и восстановление при частичном отказе."
+    },
+    {
+      "id": "K-032",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Нет safe code actions и formatter workflow",
+      "evidence": "docs/suite/PARITY.md; docs/studio/LANGUAGE.md",
+      "acceptance": "Подтверждаемые edits, диапазоны, undo, dirty/version и отказ от server commands без отдельного согласия."
+    },
+    {
+      "id": "K-033",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Навигация не покрывает стандартную библиотеку и внешние зависимости",
+      "evidence": "docs/studio/LANGUAGE.md, scanned workspace targets",
+      "acceptance": "Явная модель read-only внешних sources и URI/trust boundaries, не просто снять starts_with guard."
+    },
+    {
+      "id": "K-034",
+      "priority": "P2",
+      "status": "OPEN",
+      "title": "При нескольких definitions выбирается первая",
+      "evidence": "docs/studio/LANGUAGE.md",
+      "acceptance": "Chooser с preview и клавиатурой, stale snapshot guard; не угадывать нужную цель."
+    },
+    {
+      "id": "K-035",
+      "priority": "P2",
+      "status": "OPEN",
+      "title": "Ошибки запуска analyzer не всегда объясняют причину",
+      "evidence": "crates/kedr-workbench/src/lsp/process.rs, stderr discarded; первичный локальный live-run завершился Invalid or oversized LSP header до установки компонента",
+      "acceptance": "Bounded диагностический stderr/exit status и понятная подсказка; после установки сервера живой тест проверять отдельно."
+    },
+    {
+      "id": "K-036",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Stop убивает прямого потомка, не всё дерево процессов",
+      "evidence": "crates/kedr-workbench/src/tasks.rs; docs/studio/LANGUAGE.md",
+      "acceptance": "Unix process groups/Windows Job Objects или эквивалент; тесты детей/внуков и закрытия окна."
+    },
+    {
+      "id": "K-037",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Фаза завершения Cargo может опередить дренирование stdout/stderr",
+      "evidence": "crates/kedr-workbench/src/tasks.rs::pipe и try_wait",
+      "acceptance": "Финализировать после bounded drain, учитывать унаследованные pipes; тест больших хвостов/UTF-8/ошибок."
+    },
+    {
+      "id": "K-038",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Build/test интеграция ограничена Cargo",
+      "evidence": "crates/kedr-workbench/src/tasks.rs::TaskKind",
+      "acceptance": "Реальные adapters toolchain/project models, окружения и явное разрешение выполнения для других языков."
+    },
+    {
+      "id": "K-039",
+      "priority": "P2",
+      "status": "OPEN",
+      "title": "Cargo test output не является test tree и coverage UI",
+      "evidence": "crates/kedr-workbench/src/tasks.rs; docs/suite/PARITY.md",
+      "acceptance": "Структурированные результаты, rerun отдельного теста, failures, lifecycle; coverage отдельно."
+    },
+    {
+      "id": "K-040",
+      "priority": "P2",
+      "status": "OPEN",
+      "title": "Нет полноценной модели run configurations",
+      "evidence": "docs/suite/AUDIT.md; docs/suite/PARITY.md",
+      "acceptance": "Версионированные args/env/cwd, секреты не в открытом JSON, проверка запуска/отмены."
+    },
+    {
+      "id": "K-041",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Нет Git status/diff/history/commit workflow",
+      "evidence": "docs/suite/PARITY.md",
+      "acceptance": "Сначала безопасный read-only status/diff; изменяющие операции с подтверждением и dirty guards."
+    },
+    {
+      "id": "K-042",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Output console не заменяет терминал",
+      "evidence": "docs/suite/PARITY.md; crates/kedr-workbench/src/tasks.rs",
+      "acceptance": "Реальный PTY, resize, input, Unicode, shell exit, process-tree lifecycle на целевых ОС."
+    },
+    {
+      "id": "K-043",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Нет отладчика",
+      "evidence": "docs/suite/PARITY.md",
+      "acceptance": "DAP/native adapter, breakpoints, stepping, threads/frames/variables и fault tests."
+    },
+    {
+      "id": "K-044",
+      "priority": "P2",
+      "status": "OPEN",
+      "title": "Нет multi-cursor/column selection workflow",
+      "evidence": "docs/studio/PRODUCT.md; редактор хранит один cursor/anchor",
+      "acceptance": "Набор selection ranges, атомарное undo и тесты перекрытий/Unicode, а не декоративная кнопка."
+    },
+    {
+      "id": "K-045",
+      "priority": "P2",
+      "status": "OPEN",
+      "title": "Курсор движется по scalars, не grapheme clusters",
+      "evidence": "products/codecedar.md; crates/kedr-workbench/src/editor.rs",
+      "acceptance": "Определить grapheme/bidi policy; combining marks, emoji ZWJ, flags, selection и backspace tests."
+    },
+    {
+      "id": "K-046",
+      "priority": "P2",
+      "status": "OPEN",
+      "title": "Syntax highlighting — line lexer, не parser/type analysis",
+      "evidence": "products/codecedar.md",
+      "acceptance": "Корректность multiline constructs, incremental parsing и замеры; не называть цвета semantic analysis."
+    },
+    {
+      "id": "K-047",
+      "priority": "P2",
+      "status": "OPEN",
+      "title": "Длинная строка отображается окном 8 KiB, нет wrap/minimap",
+      "evidence": "products/codecedar.md",
+      "acceptance": "Navigation/find/caret/scroll acceptance на pathological lines; не путать render limit с потерей текста."
+    },
+    {
+      "id": "K-048",
+      "priority": "P2",
+      "status": "OPEN",
+      "title": "Жёсткие квоты ограничивают реальные большие проекты",
+      "evidence": "src/project.rs; products/codecedar.md; docs/studio/LANGUAGE.md",
+      "acceptance": "Понятные лимиты/частичность в UI, стресс-тесты; 16 MiB/32 tabs/5000 files не универсальная IDE."
+    },
+    {
+      "id": "K-049",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Custom editor не предоставляет полный screen-reader text model",
+      "evidence": "products/codecedar.md; docs/suite/PARITY.md",
+      "acceptance": "Text/selection semantics и ручные NVDA/VoiceOver/Orca сценарии; labels недостаточно."
+    },
+    {
+      "id": "K-050",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Физические IME/Wayland/high-DPI сценарии ещё не приняты",
+      "evidence": "docs/studio/VALIDATION.md",
+      "acceptance": "Реальные target-machine тесты composition, clipboard, focus, portal, scaling и fonts."
+    },
+    {
+      "id": "K-051",
+      "priority": "P2",
+      "status": "OPEN",
+      "title": "Keymap — single-stroke subset, не полная совместимость",
+      "evidence": "docs/suite/SHORTCUTS.md; docs/suite/PARITY.md",
+      "acceptance": "Chord/double-modifier/context dispatch с конфликтами и физическими клавиатурами."
+    },
+    {
+      "id": "K-052",
+      "priority": "P2",
+      "status": "OPEN",
+      "title": "Нет завершённой локализации и покрытия всех письменностей",
+      "evidence": "products/codecedar.md; docs/suite/PARITY.md",
+      "acceptance": "Externalized strings, plural/forms/layout expansion, fallback fonts и RTL acceptance."
+    },
+    {
+      "id": "K-053",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Распространение — unsigned preview artifacts, не trusted update channel",
+      "evidence": "products/codecedar.md; docs/suite/INSTALL.md",
+      "acceptance": "Подпись/проверка происхождения, rollback, обновление, retention релизов и reproducible-build policy."
+    },
+    {
+      "id": "K-054",
+      "priority": "P2",
+      "status": "OPEN",
+      "title": "macOS tarball не равен подписанному .app и notarized installer",
+      "evidence": "products/codecedar.md; .github/workflows/studio.yml",
+      "acceptance": "Настоящий bundle, icons/open associations, подпись/notarization и target-machine upgrade/uninstall."
+    },
+    {
+      "id": "K-055",
+      "priority": "P1",
+      "status": "FIXED_GATE",
+      "title": "Заявленный MSRV всего desktop workspace не проверялся отдельным CI gate",
+      "evidence": "Cargo.toml rust-version; .github/workflows/core.yml проверял только default root; добавлен studio msrv-workspace",
+      "acceptance": "cargo +1.88.0 check --locked --workspace --all-targets локально; отдельный hosted job, результат нового run отдельно."
+    },
+    {
+      "id": "K-056",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Нет актуального полного UI latency/memory/endurance baseline",
+      "evidence": "PERFORMANCE.md; docs/studio/VALIDATION.md",
+      "acceptance": "p50/p95/p99 edit/open/search/save, RSS и долгий сеанс на документированном железе; core bench не UI bench."
+    },
+    {
+      "id": "K-057",
+      "priority": "P1",
+      "status": "OPEN",
+      "title": "Journal child-kill tests не доказывают полный GUI crash/restore",
+      "evidence": "docs/studio/RECOVERY.md; apps/studio/src/recovery.rs tests",
+      "acceptance": "GUI edit → checkpoint → kill → restart → restore плюс disk-full/permission/interrupted-commit и upgrade tests."
+    },
+    {
+      "id": "K-058",
+      "priority": "P2",
+      "status": "OPEN",
+      "title": "Генерация screenshots не равна визуальной и accessibility приёмке",
+      "evidence": "scripts/ui_capture.py; docs/studio/VALIDATION.md",
+      "acceptance": "Индивидуальный review сцен, отдельные many-offers/nonmatching-workspace сценарии и физические платформы."
+    },
+    {
+      "id": "P-ideacedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "IdeaCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/ideacedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: JVM project import and build models; Semantic completion, navigation and refactoring; JVM debugging, tests and framework tooling. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-pycedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "PyCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/pycedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Interpreter, virtual environment and packaging management; Python analysis, refactoring and tests; Debugging, notebooks and web framework workflows. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-webcedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "WebCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/webcedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: JS/TS semantic services and frameworks; Node/package manager/test runner integration; Browser and Node debugging. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-phpcedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "PhpCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/phpcedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: PHP/Composer project model; Semantic tooling and framework integration; PHP tests and debugging. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-rubycedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "RubyCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/rubycedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Ruby environments and dependency management; Ruby/Rails semantic tooling; Tests and debugger integration. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-gocedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "GoCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/gocedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Go modules and workspace model; Semantic tooling and refactoring; Tests, debugging and profiling integration. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-cppcedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "CppCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/cppcedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: CMake/toolchain and compilation database support; C/C++ semantic services and refactoring; Native debugging, sanitizers and test runners. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-rustcedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "RustCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/rustcedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Cargo/rust-analyzer project integration; Versioned diagnostics, completion and refactoring; Debugging, tests and profiling integration. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-dotcedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "DotCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/dotcedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Solution/MSBuild/NuGet project model; C#/F# semantic services and refactoring; .NET debugging and game engine workflows. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-datacedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "DataCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/datacedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Permission-aware database drivers and connection management; SQL completion and schema navigation; Query execution, result editing and safe transactions. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-metacedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "MetaCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/metacedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Language definition and projectional editing; Type systems and generation; Language testing and migration tooling. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-boxcedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "BoxCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/boxcedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Verified packages and channel management; Installation, removal and rollback; Local project launch and version management. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-sharpcedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "SharpCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/sharpcedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Permission-scoped Visual Studio integration; C# inspections and refactoring; Solution navigation and test workflows. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-sharpcppcedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "SharpCppCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/sharpcppcedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Visual Studio C++ project integration; C++ analysis and refactoring; Native tests and navigation. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-peekcedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "PeekCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/peekcedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Assembly metadata browsing; Legal/permission-aware decompilation workflows; Source/symbol navigation. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-tracecedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "TraceCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/tracecedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Runtime sampling and tracing; Timeline and call tree exploration; Reproducible profile comparison. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-memorycedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "MemoryCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/memorycedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Managed runtime heap snapshots; Allocation/retention analysis; Leak investigation and profile comparison. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-covercedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "CoverCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/covercedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Runtime coverage collection; Test runner integration; Branch/statement coverage and comparison. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-trackcedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "TrackCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/trackcedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Issues, permissions and workflow engine; Boards, search and reporting; Audit trails and import/export. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-buildcedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "BuildCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/buildcedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Build agents, queues and isolation; Pipeline configuration and secrets boundaries; Artifacts, logs and build history. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-hubcedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "HubCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/hubcedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Identity and authentication boundaries; Role/permission administration; Audited service integrations. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-labcedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "LabCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/labcedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Reproducible notebook execution; Data access and compute isolation; Collaboration and shareable results. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-qualitycedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "QualityCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/qualitycedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Static analysis pipelines; Baselines, policy gates and reports; CI integration and findings navigation. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-paircedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "PairCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/paircedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Explicitly authorized shared sessions; Editor synchronization and permission controls; Connection recovery and collaboration security. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-gatecedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "GateCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/gatecedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Secure remote host connections; Workspace discovery and lifecycle; Version/protocol compatibility checks. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-cloudcedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "CloudCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/cloudcedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Isolated environment provisioning; Resource/policy controls; Workspace lifecycle and auditability. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-learncedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "LearnCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/learncedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Courses and exercise workflows; Local test-based feedback; Progress and curriculum authoring. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-agentcedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "AgentCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/agentcedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Explicit capabilities and execution permissions; Reviewable plans, patches and test evidence; Provider abstraction and cancellation. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-aicedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "AICedar: нет самостоятельного приложения/backend",
+      "evidence": "products/aicedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Local/remote provider choice; Explicit data-sharing and context limits; Consent-based assistance without cloud dependency. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-aircedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "AirCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/aircedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Audited agent sessions and workspace isolation; Provider/protocol interoperability; Review, cancellation and governance. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-marketcedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "MarketCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/marketcedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Signed manifests and permission declarations; Compatibility/dependency validation; Review, updates and revocation. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    },
+    {
+      "id": "P-mattercedar",
+      "priority": "P3",
+      "status": "NOT_IMPLEMENTED",
+      "title": "MatterCedar: нет самостоятельного приложения/backend",
+      "evidence": "products/mattercedar.md; products/catalog.json implementation=null",
+      "acceptance": "Реализовать и проверить: Research the product scope before implementation; Document data boundaries and service contracts; Approve a testable specification before feature claims. Нужны реальный host/package, integration/security tests и проверяемая поставка."
+    }
+  ]
+}

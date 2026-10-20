@@ -95,7 +95,7 @@ duplicate, delete-line and tab cycling are real operations backed by tests.
 ## Limits you should know
 
 - No LSP completion, semantic refactoring, debugger, terminal emulator, Git UI,
-  plugin runtime, remote development or recovery/autosave implementation yet.
+  plugin runtime or remote development. Recovery is bounded plaintext checkpoints, not project autosave.
 - Syntax colors are a simple line lexer, not a parser/type checker.
 - Cursor movement is by Unicode scalars, not grapheme clusters. System-level IME
   integration is implemented but only synthetic composition events were tested.

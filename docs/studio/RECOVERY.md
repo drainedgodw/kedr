@@ -45,8 +45,11 @@ recreated by Save. Copy the recovered text elsewhere when necessary; Save As and
 conflict diff/merge are not implemented yet.
 
 Restoring deliberately retains the original snapshot. **Delete snapshot…** asks
-for a separate confirmation and removes only that selected backup revision, never
-a project file or current editor buffer. Another instance may still be running;
+for a separate confirmation and removes the selected backup plus retired older
+numbered revisions in that session, never a project file or current editor buffer.
+Older revisions are removed first; failures retain the selected revision and report
+an error. This prevents an old revision left by failed cleanup from reappearing.
+Temporary and unrelated files are not removed. Another instance may still be running;
 its independent newer revisions are not removed. Offers are discovered at startup,
 not continuously refreshed. A deleted/changed source reports an error on access.
 

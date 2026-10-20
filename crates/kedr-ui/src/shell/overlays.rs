@@ -231,7 +231,7 @@ impl Shell {
                 }
                 Dialog::ForgetRecovery(id) => {
                     ui.heading("Delete this recovery snapshot?");
-                    ui.label(RichText::new("This removes the selected local backup, not any project file.").color(p.amber));
+                    ui.label(RichText::new("This removes this backup and its retired older revisions, not project files.").color(p.amber));
                     ui.label("Another session may still be running. Restored or current editor buffers are unchanged.");
                     ui.horizontal_wrapped(|ui| {
                         if ui.add_enabled(!self.recovery_busy, egui::Button::new("Delete snapshot")).clicked() {
@@ -517,7 +517,7 @@ impl Shell {
     /// Deterministic capture states; no commands or project files are modified on disk.
     pub fn capture_state(&mut self, state: &str) {
         match state {
-            "recovery" | "recovery-delete" => {
+            "recovery" | "recovery-delete" | "recovery-many" | "recovery-other" => {
                 let root = self
                     .workspace
                     .as_ref()
@@ -528,6 +528,21 @@ impl Shell {
                     root,
                     count: 2,
                 }];
+                if state == "recovery-other" {
+                    self.recovery_offers[0].root =
+                        self.recovery_offers[0].root.join("another-workspace");
+                } else if state == "recovery-many" {
+                    let base = self.recovery_offers[0].root.clone();
+                    self.recovery_offers = (0..32)
+                        .map(|id| kedr_workbench::recovery::Offer {
+                            id,
+                            root: base.join(format!(
+                                "long-workspace-name-for-recovery-layout-review-{id}"
+                            )),
+                            count: 32,
+                        })
+                        .collect();
+                }
                 self.dialog = Some(if state == "recovery-delete" {
                     Dialog::ForgetRecovery(0)
                 } else {

@@ -18,6 +18,7 @@ Kedr is not affiliated with JetBrains.
 - [What has actually been delivered](docs/suite/PROGRESS.md)
 - [Keyboard profiles and implemented actions](docs/suite/KEYMAP.md)
 - [Customize shortcuts](docs/suite/SHORTCUTS.md)
+- [Full 33-product audit: 90 findings and acceptance gates](docs/suite/PRODUCT_AUDIT.md)
 - [Workbench gap audit](docs/suite/AUDIT.md)
 - [Feature-parity roadmap and acceptance gates](docs/suite/PARITY.md)
 

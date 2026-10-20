@@ -1,5 +1,14 @@
 # Workbench gap audit
 
+**Current comprehensive review:** [90 findings across all 33 catalog products](PRODUCT_AUDIT.md),
+with a [machine-readable backlog](product-audit.json). Only one runtime exists;
+32 planned entries are explicitly NOT_IMPLEMENTED, not runtime-test passes.
+
+The preceding recovery run [39305573342](https://github.com/drainedgodw/kedr/actions/runs/39305573342)
+has now been observed successful across Linux, Windows (including installer), macOS
+and Arch. The failure discussed below belongs to the older reload revision.
+New audit fixes require their own hosted acceptance.
+
 Audit basis: the actual CodeCedar source and acceptance tests, not the 33 catalog
 names. Only CodeCedar is runnable. The rest are product plans; a new logo, command
 binding or screenshot does not constitute an IDE implementation.
@@ -64,3 +73,15 @@ separate snapshot deletion and approved-quit retirement. Source snapshots remain
 until explicitly deleted. Child-process termination and worker/UI model tests
 complement labelled layout captures; this is not complete crash/power-loss
 acceptance. Only CodeCedar is runnable. No new Git/PTY/DAP/LSP parity is inferred.
+
+## Adversarial audit corrections
+
+Four before/after regressions exposed real defects: Unix save staging permissions,
+saving beyond the reader's 16 MiB bound, observed symlink/parent-path rebinding,
+and deleted recovery snapshots resurfacing from retired revisions left after
+failed cleanup. Fixes add private staging, bounded/identity-checked saves, and
+ordered recovery deletion that leaves newer/temporary/unrelated entries alone.
+These remain best-effort filesystem checks, not hostile-TOCTOU protection or
+secure erasure. Added product inventory rejects missing runtime evidence and
+multiple product names for the same host. The MSRV workspace check is a separate
+CI gate, not an assertion of universal platform compatibility.

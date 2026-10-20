@@ -18,6 +18,9 @@ jobs:
         with:
           components: rustfmt, clippy, rust-analyzer
       - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
       - name: Linux graphics dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libxkbcommon-x11-0 libgl1-mesa-dev libwayland-dev xvfb desktop-file-utils
@@ -28,8 +31,16 @@ jobs:
       - name: Linux installer filesystem tests
         if: runner.os == 'Linux'
         run: python3 -m unittest discover -s packaging/tests -v
+      - name: Product inventory and negative contract tests
+        run: |
+          python scripts/audit_products.py --out product-audit.json
+          python -m unittest discover -s scripts/tests -v
       - name: Validate product catalog and generated keyboard table
         run: python scripts/check_catalog.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: product-audit-${{ runner.os }}
+          path: product-audit.json
       - run: cargo clippy --locked --workspace --all-targets -- -D warnings
       - run: cargo build --locked --release -p kedr-studio
       - name: Capture native UI states
@@ -129,3 +140,14 @@ jobs:
         with:
           name: CodeCedar-Arch-Package
           path: /tmp/kedr-package/*.pkg.tar.zst
+
+  msrv-workspace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: studio-msrv
+      - name: Check every workspace target on the declared minimum Rust
+        run: cargo check --locked --workspace --all-targets

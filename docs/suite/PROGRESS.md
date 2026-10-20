@@ -93,3 +93,14 @@ See [recovery limits](../studio/RECOVERY.md): checkpoint gaps, bounded quotas,
 UI snapshot materialization, unencrypted retention and blocking OS I/O remain.
 The preceding Windows installer failure was an NSIS feed failure, not a green
 packaging result; new retries still require hosted acceptance.
+
+## Whole-suite adversarial audit
+
+See [the complete 90-finding audit](PRODUCT_AUDIT.md). Every catalog entry has a
+separate structural/runtime-availability verdict. One runnable preview and 32
+unimplemented plans is the actual scope; catalog PASS never means runtime PASS.
+This revision fixes four reproduced data-protection defects, adds negative
+product-contract tests and an MSRV workspace gate. Source, regression evidence,
+remaining gaps and closure criteria are recorded together rather than hidden
+behind a growing feature count. The previous recovery hosted run 39305573342
+passed all four platform/package jobs; the new revision's hosted result is separate.

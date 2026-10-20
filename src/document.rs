@@ -52,6 +52,13 @@ impl Document {
     /// Same-directory staged write + sync + atomic rename on supported local filesystems.
     /// The external-content check is not a lock against concurrent writers.
     pub fn save(&mut self) -> io::Result<()> {
+        if self.buffer.len_bytes() > MAX_DOCUMENT_BYTES {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "File exceeds 16 MiB limit",
+            ));
+        }
+        validate_target(&self.path)?;
         let disk = read_text(&self.path)?;
         if disk.as_str() != self.saved.as_ref() {
             return Err(io::Error::other(
@@ -71,6 +78,7 @@ impl Document {
             file.sync_all()?;
             drop(file);
             // Recheck immediately before committing the staged file.
+            validate_target(&self.path)?;
             if read_text(&self.path)?.as_str() != self.saved.as_ref() {
                 return Err(io::Error::other("File changed during save"));
             }
@@ -85,7 +93,19 @@ impl Document {
         Ok(())
     }
 }
+/// Refuse observed path rebinding and non-regular objects before opening them.
+/// This is not a filesystem lock or protection against adversarial TOCTOU races.
+fn validate_target(path: &Path) -> io::Result<()> {
+    let metadata = fs::symlink_metadata(path)?;
+    if !metadata.is_file() || metadata.file_type().is_symlink() || path.canonicalize()? != path {
+        return Err(io::Error::other(
+            "File identity changed or target is not a regular file",
+        ));
+    }
+    Ok(())
+}
 fn read_text(path: &Path) -> io::Result<String> {
+    validate_target(path)?;
     let file = File::open(path)?;
     let mut bytes = Vec::new();
     file.take((MAX_DOCUMENT_BYTES + 1) as u64)
@@ -102,10 +122,38 @@ fn stage(parent: &Path) -> io::Result<(PathBuf, File)> {
     loop {
         let id = NEXT.fetch_add(1, Ordering::Relaxed);
         let path = parent.join(format!(".kedr-save-{}-{id}", std::process::id()));
-        match OpenOptions::new().write(true).create_new(true).open(&path) {
+        let mut options = OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        match options.open(&path) {
             Ok(file) => return Ok((path, file)),
             Err(e) if e.kind() == io::ErrorKind::AlreadyExists => continue,
             Err(e) => return Err(e),
         }
+    }
+}
+
+#[cfg(all(test, unix))]
+mod audit_tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+    #[test]
+    fn staging_is_private_before_any_document_bytes_are_written() {
+        let dir = std::env::temp_dir().join(format!("kedr-private-stage-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let (path, file) = stage(&dir).unwrap();
+        let mode = file.metadata().unwrap().permissions().mode() & 0o777;
+        drop(file);
+        fs::remove_file(path).unwrap();
+        fs::remove_dir(dir).unwrap();
+        assert_eq!(
+            mode & 0o077,
+            0,
+            "temporary source must not be group/world-readable"
+        );
     }
 }

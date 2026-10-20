@@ -27,6 +27,17 @@ class InstallTests(unittest.TestCase):
   (self.bundle/'binary').write_text('corrupt');self.assertRaises(ValueError,self.i.install,'codecedar');self.assertFalse(self.i.state.exists());self.assertFalse(self.i.paths['binary'].exists())
  def test_planned_product_cannot_install(self):
   self.assertRaises(ValueError,self.i.install,'pycedar');self.assertFalse(self.i.state.exists())
+ def test_every_planned_catalog_product_is_rejected_without_side_effects(self):
+  catalog=json.loads((Path(__file__).resolve().parents[2]/'products/catalog.json').read_text(encoding='utf-8'))['products']
+  planned=[p for p in catalog if p['status']=='planned']
+  self.assertEqual(len(planned),32)
+  self.manifest['products']=[self.manifest['products'][0]]+[{'slug':p['slug'],'name':p['name'],'available':False} for p in planned]
+  self.write();installer=m.Installer(self.bundle,self.home)
+  for p in planned:
+   with self.subTest(product=p['slug']):
+    self.assertRaises(ValueError,installer.install,p['slug'])
+    self.assertFalse(installer.state.exists())
+    self.assertFalse(installer.paths['binary'].exists())
  def test_unknown_product_cannot_install(self):self.assertRaises(ValueError,self.i.install,'unknown')
  def test_architecture_mismatch_is_rejected(self):
   self.manifest['arch']='not-this-machine';self.write();self.assertRaises(ValueError,m.Installer(self.bundle,self.home).install,'codecedar')

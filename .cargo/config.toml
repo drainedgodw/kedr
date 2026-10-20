@@ -1,0 +1,7 @@
+# Ship the MSVC C runtime inside the executable, rather than assuming that the
+# user has installed a Visual C++ Redistributable. Windows OS DLLs remain external.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

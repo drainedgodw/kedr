@@ -552,3 +552,15 @@ Python inventory требует Python 3.11+ (`tomllib`). Live tests требу�
 - Binary SHA-256: `96d75dd0f7470ae53d552bcfa916d768f8c09ec73429bece5d55a0b8a7a442b8`.
 - Первые попытки live/native проверки потребовали установки rust-analyzer/libXcursor. В установочном harness исправлен неверно ожидаемый путь binary. Финальные прогоны после исправления окружения/harness успешны; первоначальные неудачи не спрятаны и не засчитаны как passed.
 - Новый hosted CI после публикации проверяется отдельно. Ни локальные тесты, ни предыдущий зелёный run не означают автоматически зелёный новый run.
+
+## Subsequent distribution revision — original audit is not a release certificate
+
+The next revision adds deb/rpm dependency-managed packages, clean-image native
+install acceptance, Windows static CRT/PE dependency auditing and macOS app/DMG
+building. See [distribution contracts](DISTRIBUTION.md) and
+[actual revision evidence](DISTRIBUTION_VALIDATION.md). K-053/K-054 remain open:
+unsigned previews and ad-hoc signing are not signed release/update/notarization.
+The original audit workflow 39387663786 completed with Linux/Arch/MSRV success but
+Windows/macOS failure in recovery deletion. Discovery path canonicalization is
+now fixed locally; new hosted platform results must be checked independently.
+The 32 missing product implementations remain missing.

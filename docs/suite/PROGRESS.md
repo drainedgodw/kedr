@@ -104,3 +104,18 @@ product-contract tests and an MSRV workspace gate. Source, regression evidence,
 remaining gaps and closure criteria are recorded together rather than hidden
 behind a growing feature count. The previous recovery hosted run 39305573342
 passed all four platform/package jobs; the new revision's hosted result is separate.
+
+## Native dependency packaging revision
+
+Native deb/rpm builders declare dlopen graphics/portal requirements and use distro
+ABI scanners, with a separate clean-image install/render/reinstall/remove workflow.
+Windows MSVC builds statically link CRT and audit normal/delay DLL imports. macOS
+now has a native app/DMG builder, system-dylib audit, derived minimum OS, icon and
+ad-hoc signature (not notarization). Native hosted results are separate acceptance
+gates, not implied by adding scripts. The offline Linux selector remains explicitly
+non-dependency-complete. Optional project toolchains are still external.
+
+The preceding audit CI exposed a real Windows/macOS recovery deletion regression:
+noncanonical storage identities were rejected. Discovery now canonicalizes the
+base without following session symlinks; a storage-alias regression fails before
+and passes after the fix. See [distribution validation](DISTRIBUTION_VALIDATION.md).

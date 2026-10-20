@@ -35,12 +35,18 @@ select a successful run for the desired commit, and download its platform artifa
 Artifacts are named `kedr-studio-<OS>-<architecture>`. GitHub may require sign-in to
 retrieve Actions artifacts. Availability is determined by the actual job result,
 not by this guide or a workflow configuration. These are unsigned preview builds;
-Linux and Windows preview installers are now built by CI; there is no signed stable release or notarized macOS distribution.
+Linux/Windows installer jobs and the new macOS app/DMG job are configured in CI;
+use only artifacts from a successful job. Native Ubuntu/Fedora packages are built
+by [Distribution builds](https://github.com/drainedgodw/kedr/actions/workflows/distribution.yml).
+There is no signed stable release or notarized macOS distribution.
 
 ## Install with menu entries and icons
 
-See [installation guide](../docs/suite/INSTALL.md) for the offline Linux selector,
-local makepkg/pacman package without AUR registration, and Windows setup wizard.
+See [installation guide](../docs/suite/INSTALL.md) for dependency-managed apt/dnf
+packages, local makepkg/pacman without AUR registration, the Windows setup wizard
+and macOS app/DMG preview. The offline Linux selector remains an advanced fallback
+that does not resolve system libraries. [Distribution gates](../docs/suite/DISTRIBUTION.md)
+separate runtime dependencies from optional project toolchains.
 Only CodeCedar can currently be installed; other catalog products stay disabled.
 
 ## Build on Arch Linux

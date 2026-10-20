@@ -1,0 +1,92 @@
+name: distribution
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: ubuntu:24.04
+            format: deb
+            name: Ubuntu-24.04-x86_64
+          - image: fedora:43
+            format: rpm
+            name: Fedora-43-x86_64
+    container: ${{ matrix.image }}
+    steps:
+      - name: Install native build tools
+        shell: bash
+        run: |
+          if command -v apt-get >/dev/null; then
+            apt-get update
+            apt-get install -y build-essential curl git ca-certificates python3 dpkg-dev pkg-config libxkbcommon-dev libgl1-mesa-dev
+          else
+            dnf install -y gcc gcc-c++ curl git ca-certificates python3 rpm-build pkgconf-pkg-config libxkbcommon-devel mesa-libGL-devel
+          fi
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: distribution-${{ matrix.name }}
+      - name: Test implemented components and every catalog contract
+        run: |
+          cargo test --locked --workspace
+          python3 scripts/audit_products.py --out product-audit.json
+          python3 -m unittest discover -s scripts/tests -v
+          python3 -m unittest discover -s packaging/tests -v
+      - run: cargo build --locked --release -p kedr-studio
+      - name: Build distro package with explicit and generated ABI dependencies
+        run: python3 scripts/build_native_linux.py --binary target/release/kedr-studio --format ${{ matrix.format }} --out native-packages --release 0.preview.${{ github.run_number }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CodeCedar-${{ matrix.name }}
+          path: native-packages/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Distribution-inventory-${{ matrix.name }}
+          path: product-audit.json
+
+  clean-install:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: ubuntu:24.04
+            format: deb
+            name: Ubuntu-24.04-x86_64
+          - image: fedora:43
+            format: rpm
+            name: Fedora-43-x86_64
+    container: ${{ matrix.image }}
+    steps:
+      - name: Minimal checkout tools (no graphics or application dependencies)
+        shell: bash
+        run: |
+          if command -v apt-get >/dev/null; then
+            apt-get update && apt-get install -y git ca-certificates
+          else
+            dnf install -y git ca-certificates
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: CodeCedar-${{ matrix.name }}
+          path: native-packages
+      - name: Package-manager dependency resolution and installed GUI smoke
+        env:
+          KEDR_DISPOSABLE_PACKAGE_TEST: '1'
+        shell: bash
+        run: bash scripts/test_native_linux.sh ${{ matrix.format }} "$PWD"/native-packages/*.${{ matrix.format }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Installed-smoke-${{ matrix.name }}
+          path: /home/kedrtest/package-smoke.png

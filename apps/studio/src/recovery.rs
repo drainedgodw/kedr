@@ -45,7 +45,16 @@ fn discover(base: &Path) -> (Vec<PathBuf>, Vec<Offer>, Vec<String>) {
     let mut offers = Vec::new();
     let mut errors = Vec::new();
     let mut total = 0u64;
-    let entries = match fs::read_dir(base) {
+    // Keep stored snapshot identities canonical. Windows adds a verbatim prefix,
+    // and macOS temp/state ancestors can be aliases (/var -> /private/var).
+    // Canonicalize the trusted storage base, not individual session symlinks:
+    // file_type below still excludes symlinked session directories.
+    let base = match base.canonicalize() {
+        Ok(p) => p,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return (paths, offers, errors),
+        Err(e) => return (paths, offers, vec![e.to_string()]),
+    };
+    let entries = match fs::read_dir(&base) {
         Ok(e) => e,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return (paths, offers, errors),
         Err(e) => return (paths, offers, vec![e.to_string()]),
@@ -343,6 +352,36 @@ mod tests {
         assert!(p.is_empty() && o.is_empty() && !e.is_empty());
         assert!(dir.join("00000000000000000002.json").exists());
         fs::remove_dir_all(base).unwrap();
+    }
+    #[cfg(unix)]
+    #[test]
+    fn discovery_canonicalizes_storage_alias_before_deletion_identity_checks() {
+        use kedr_workbench::recovery::Draft;
+        let p = deletion_fixture();
+        let real = p.join("real");
+        fs::create_dir(&real).unwrap();
+        let root = p.join("project");
+        fs::create_dir(&root).unwrap();
+        let root = root.canonicalize().unwrap();
+        let snapshot = Snapshot {
+            root: root.clone(),
+            drafts: vec![Draft {
+                path: root.join("a.rs"),
+                baseline: "disk".into(),
+                text: "draft".into(),
+                cursor: 0,
+            }],
+        };
+        write_revision(&real.join("session"), 1, &snapshot).unwrap();
+        let alias = p.join("storage-alias");
+        std::os::unix::fs::symlink(&real, &alias).unwrap();
+        let (paths, offers, errors) = discover(&alias);
+        assert!(errors.is_empty(), "{errors:?}");
+        assert_eq!(offers.len(), 1);
+        assert_eq!(paths[0], paths[0].canonicalize().unwrap());
+        forget_snapshot(&paths[0]).unwrap();
+        assert!(discover(&alias).1.is_empty());
+        fs::remove_dir_all(p).unwrap();
     }
     #[test]
     fn deleting_latest_snapshot_does_not_resurrect_retired_revisions() {

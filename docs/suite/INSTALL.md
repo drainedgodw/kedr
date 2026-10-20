@@ -3,7 +3,26 @@
 Only CodeCedar is implemented. The installer lists the entire catalog but refuses
 planned products. This is an unsigned preview, not a stable/signed release.
 
-## Linux: offline selector and automatic menu/icon registration
+## Preferred: native packages resolve runtime dependencies
+
+For dependency-managed installation, use a matching native preview artifact:
+
+```bash
+# Ubuntu 24.04 x86_64 (a matching package from successful distribution CI):
+sudo apt install ./codecedar_*.deb
+# Fedora 43 x86_64:
+sudo dnf install ./codecedar-*.rpm
+# Arch: review packaging/arch/PKGBUILD, then as a regular user:
+makepkg -si
+```
+
+`apt`/`dnf`/`pacman` install missing declared runtime libraries from distro repositories.
+Do not use `dpkg -i` alone or bypass dependencies with `rpm --nodeps`. These are
+not universal Linux packages. See [distribution contracts and limits](DISTRIBUTION.md)
+and [actual acceptance results](DISTRIBUTION_VALIDATION.md). Optional project
+compilers/Cargo/rust-analyzer are not bundled by these runtime packages.
+
+## Linux: offline selector and automatic menu/icon registration (advanced fallback)
 
 Download a successful Linux installer artifact from the Studio Actions workflow,
 extract it and run from the extracted directory:
@@ -78,9 +97,17 @@ are not individually hash-protected like the Linux user installer.
 
 ## macOS and acceptance limits
 
-macOS remains a build/archive preview; no new macOS installer/notarization is
-claimed. CI/container evidence and simulated filesystem tests are distinct from
-physical Arch/Wayland or Windows/macOS desktop acceptance. Read VALIDATION before
-calling every platform/product tested.
+The new native builder creates `CodeCedar-macOS.dmg` containing a standard
+`CodeCedar.app` and an Applications shortcut. Drag the app to Applications.
+It checks linked libraries, derives minimum macOS from the actual executable and
+uses an ad-hoc signature for bundle integrity. This is **not** Developer-ID signing
+or notarization and does not remove Gatekeeper/reputation requirements. Use only
+a successful native macOS workflow artifact; local Linux contract tests cannot
+establish macOS installation or GUI acceptance.
+
+CI/container evidence and simulated filesystem tests are distinct from physical
+Arch/Wayland or Windows/macOS desktop acceptance. Read validation before calling
+every platform/product tested. The MSVC Windows configuration now statically links
+the CRT, and packaging refuses unshipped non-system normal/delay-import DLLs.
 
 See [validation](../studio/VALIDATION.md) and [feature gaps](PARITY.md).

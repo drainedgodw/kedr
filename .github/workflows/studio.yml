@@ -67,6 +67,16 @@ jobs:
           desktop-file-validate "$XDG_DATA_HOME/applications/io.github.drainedgodw.CodeCedar.desktop"
           bash linux-installer/install.sh --uninstall
           test ! -e "$HOME/.local/bin/codecedar"
+      - name: Build macOS application and disk image
+        if: runner.os == 'macOS'
+        run: |
+          python3 scripts/build_macos_app.py --binary target/release/kedr-studio --out macos-package
+          bash scripts/test_macos_app.sh macos-package/CodeCedar-macOS.dmg
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'macOS'
+        with:
+          name: CodeCedar-macOS-App
+          path: macos-package/*
       - name: Build and test Windows installer
         if: runner.os == 'Windows'
         shell: pwsh
@@ -74,6 +84,8 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $nsis = ./scripts/ensure_nsis.ps1
           if (-not $nsis) { throw 'NSIS executable was not resolved' }
+          python scripts/check_windows_runtime.py --binary target/release/kedr-studio.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Windows runtime dependency audit failed' }
           python scripts/build_windows_payload.py --binary target/release/kedr-studio.exe --out windows-payload
           if ($LASTEXITCODE -ne 0) { throw 'Windows payload preparation failed' }
           $payload = (Resolve-Path windows-payload).Path
